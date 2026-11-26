@@ -1,0 +1,256 @@
+import { addDays, daysInMonth, monthOf, today, weekOf } from './dates';
+import type { AppState, Branch, Learning, Method, Mode, RoutineItem, Skill } from './types';
+import { MODES } from './types';
+
+export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, mastered: 300 };
+export const TREATS = { routine: 1, learning: 1, solidify: 2, mastered: 3 };
+export const LOY = { item: 1, routine: 4, boItem: 5, learning: 4, solidify: 8, mastered: 15, decay: 15 };
+
+export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+
+const item = (label: string, bo = false): RoutineItem => ({ id: uid(), label, ...(bo ? { bo: true } : {}) });
+
+export function defaultRoutines(): Record<Mode, RoutineItem[]> {
+  return {
+    morning: [
+      item('Water before coffee'),
+      item('Make the bed'),
+      item('Walk Bo', true),
+      item('Move for 10 minutes'),
+      item("Look at today's plan"),
+    ],
+    afternoon: [
+      item('Real lunch, not snacks'),
+      item('Refill water'),
+      item('Get outside for 10'),
+      item('Reset one space'),
+    ],
+    night: [
+      item("Train Bo", true),
+      item("Log today's learning"),
+      item('Skincare'),
+      item('Phone on the charger, away from bed'),
+      item('Lights out on time'),
+    ],
+  };
+}
+
+export function defaultState(now = new Date()): AppState {
+  const t = today(now);
+  return {
+    version: 1,
+    profile: { name: 'Sam', dogName: 'Bo', buddyName: '', createdAt: t },
+    routines: defaultRoutines(),
+    days: {},
+    learnings: [],
+    solidifies: [],
+    skills: [],
+    xp: 0,
+    awarded: {},
+    bo: { loyalty: 60, bond: 0, settledThrough: addDays(t, -1), lastActiveAt: now.getTime(), treats: 3 },
+    settings: { fx: 'stupid', sound: true, haptics: true, theme: 'auto' },
+  };
+}
+
+/** Fill in anything missing (older saves, imports) without dropping data. */
+export function normalize(raw: unknown): AppState {
+  const d = defaultState();
+  if (!raw || typeof raw !== 'object') return d;
+  const r = raw as Partial<AppState>;
+  return {
+    ...d,
+    ...r,
+    version: 1,
+    profile: { ...d.profile, ...r.profile },
+    routines: { ...d.routines, ...r.routines },
+    days: r.days ?? {},
+    learnings: r.learnings ?? [],
+    solidifies: r.solidifies ?? [],
+    skills: r.skills ?? [],
+    xp: r.xp ?? 0,
+    awarded: r.awarded ?? {},
+    bo: { ...d.bo, ...r.bo },
+    settings: { ...d.settings, ...r.settings },
+  };
+}
+
+// ---------- rewards ----------
+
+function gainLoyalty(s: AppState, n: number) {
+  s.bo.loyalty = Math.min(100, s.bo.loyalty + n);
+  s.bo.bond += n;
+}
+
+/** Award XP + loyalty once per key. Returns true if newly awarded. */
+function award(s: AppState, key: string, xp: number, loyalty: number): boolean {
+  s.bo.lastActiveAt = Date.now(); // any real action wakes Bo up
+  if (s.awarded[key]) return false;
+  s.awarded[key] = 1;
+  s.xp += xp;
+  gainLoyalty(s, loyalty);
+  return true;
+}
+
+// ---------- routines ----------
+
+export function checkedFor(s: AppState, day: string, mode: Mode): Set<string> {
+  return new Set(s.days[day]?.[mode] ?? []);
+}
+
+export function isRoutineDone(s: AppState, mode: Mode, day: string): boolean {
+  const items = s.routines[mode];
+  if (!items.length) return false;
+  const checked = checkedFor(s, day, mode);
+  return items.every((i) => checked.has(i.id));
+}
+
+export function toggleItem(s: AppState, mode: Mode, itemId: string, day = today()) {
+  const log = (s.days[day] ??= {});
+  const list = (log[mode] ??= []);
+  const idx = list.indexOf(itemId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    return { checked: false, routineDone: false };
+  }
+  list.push(itemId);
+  const it = s.routines[mode].find((i) => i.id === itemId);
+  award(s, `item:${day}:${mode}:${itemId}`, XP.item, LOY.item + (it?.bo ? LOY.boItem : 0));
+  const routineDone = isRoutineDone(s, mode, day);
+  if (routineDone && award(s, `routine:${day}:${mode}`, XP.routine, LOY.routine)) s.bo.treats += TREATS.routine;
+  return { checked: true, routineDone };
+}
+
+// ---------- learning ----------
+
+export function addLearning(s: AppState, text: string, branch: Branch, skillId?: string, day = today()): Learning {
+  const l: Learning = { id: uid(), date: day, text, branch, ...(skillId ? { skillId } : {}) };
+  s.learnings.push(l);
+  if (award(s, `learn:${day}`, XP.learning, LOY.learning)) s.bo.treats += TREATS.learning;
+  return l;
+}
+
+export function deleteLearning(s: AppState, id: string) {
+  s.learnings = s.learnings.filter((l) => l.id !== id);
+}
+
+export function addSolidify(s: AppState, text: string, method: Method, learningId?: string, day = today()) {
+  const week = weekOf(day);
+  const learning = learningId ? s.learnings.find((l) => l.id === learningId) : undefined;
+  const skillId = learning?.skillId ?? currentSkill(s, day)?.id;
+  s.solidifies.push({
+    id: uid(),
+    week,
+    date: day,
+    text,
+    method,
+    ...(learningId ? { learningId } : {}),
+    ...(skillId ? { skillId } : {}),
+  });
+  if (award(s, `solid:${week}`, XP.solidify, LOY.solidify)) s.bo.treats += TREATS.solidify;
+}
+
+export function startSkill(s: AppState, name: string, branch: Branch, day = today()): Skill {
+  const month = monthOf(day);
+  const existing = currentSkill(s, day);
+  if (existing) {
+    existing.name = name;
+    existing.branch = branch;
+    return existing;
+  }
+  const sk: Skill = { id: uid(), name, branch, month, status: 'active' };
+  s.skills.push(sk);
+  award(s, `skill:${month}`, XP.skillStart, 0);
+  return sk;
+}
+
+export function finishSkill(s: AppState, id: string, status: 'mastered' | 'dropped', day = today()) {
+  const sk = s.skills.find((k) => k.id === id);
+  if (!sk) return;
+  sk.status = status;
+  sk.doneAt = day;
+  if (status === 'mastered' && award(s, `mastered:${id}`, XP.mastered, LOY.mastered)) s.bo.treats += TREATS.mastered;
+}
+
+export function currentSkill(s: AppState, day = today()): Skill | undefined {
+  const m = monthOf(day);
+  return s.skills.find((k) => k.month === m && k.status === 'active');
+}
+
+export function skillStats(s: AppState, sk: Skill) {
+  const learnings = s.learnings.filter((l) => l.skillId === sk.id);
+  const days = new Set(learnings.map((l) => l.date)).size;
+  const solid = s.solidifies.filter((x) => x.skillId === sk.id).length;
+  const pct =
+    sk.status === 'mastered'
+      ? 100
+      : Math.round((Math.min(days, 20) / 20) * 60 + (Math.min(solid, 4) / 4) * 40);
+  return { learnings, days, solid, pct, monthDays: daysInMonth(sk.month) };
+}
+
+// ---------- activity, streaks, Bo decay ----------
+
+export function isActive(s: AppState, day: string): boolean {
+  const log = s.days[day];
+  if (log && MODES.some((m) => (log[m]?.length ?? 0) > 0)) return true;
+  return s.learnings.some((l) => l.date === day);
+}
+
+export function streak(s: AppState, day = today()): number {
+  let d = isActive(s, day) ? day : addDays(day, -1);
+  let n = 0;
+  while (isActive(s, d) && n < 5000) {
+    n++;
+    d = addDays(d, -1);
+  }
+  return n;
+}
+
+export function bestStreak(s: AppState): number {
+  const days = new Set<string>();
+  for (const [d, log] of Object.entries(s.days)) if (MODES.some((m) => (log[m]?.length ?? 0) > 0)) days.add(d);
+  for (const l of s.learnings) days.add(l.date);
+  let best = 0;
+  for (const d of days) {
+    if (days.has(addDays(d, -1))) continue; // not a run start
+    let n = 0;
+    let c = d;
+    while (days.has(c)) {
+      n++;
+      c = addDays(c, 1);
+    }
+    best = Math.max(best, n);
+  }
+  return best;
+}
+
+/** Apply loyalty decay for every fully-missed day since we last checked. Returns missed day count. */
+export function settle(s: AppState, day = today()): number {
+  const yesterday = addDays(day, -1);
+  let d = addDays(s.bo.settledThrough, 1);
+  let missed = 0;
+  let guard = 0;
+  while (d <= yesterday && guard++ < 400) {
+    if (!isActive(s, d)) {
+      missed++;
+      s.bo.loyalty = Math.max(0, s.bo.loyalty - LOY.decay);
+    }
+    d = addDays(d, 1);
+  }
+  if (s.bo.settledThrough < yesterday) s.bo.settledThrough = yesterday;
+  return missed;
+}
+
+/** Spend a treat on Bo. Small loyalty bump; doesn't count as "activity" so it can't stop his naps. */
+export function feedTreat(s: AppState): boolean {
+  if (s.bo.treats <= 0) return false;
+  s.bo.treats--;
+  s.bo.loyalty = Math.min(100, s.bo.loyalty + 2);
+  s.bo.bond += 2;
+  return true;
+}
+
+/** Bo naps when you haven't done anything for a while. */
+export const NAP_HOURS = 3;
+export const isAsleep = (s: AppState, now = Date.now()) => now - s.bo.lastActiveAt > NAP_HOURS * 3_600_000;
+
+export const routinesFinished = (s: AppState) => Object.keys(s.awarded).filter((k) => k.startsWith('routine:')).length;
