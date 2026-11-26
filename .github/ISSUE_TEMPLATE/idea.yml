@@ -1,0 +1,18 @@
+# The "Drop an idea" box in the app (Settings tab) opens this form with the
+# idea already filled in. Also shows up under Issues → New issue.
+name: 💡 Idea
+description: Something the app should do, change, or stop doing.
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      placeholder: What should the app do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Anything else? (optional)
+      placeholder: Why it'd be good, a screenshot, a link…

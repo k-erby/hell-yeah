@@ -3,6 +3,7 @@ import { dayKey, modeAt, monthName, monthOf, today } from './dates';
 import { bigFx, hitFx, itemFx, sfx, type FxOpts } from './fx';
 import { Pet } from './pet';
 import { t, tn, tx, type TextKey } from './i18n';
+import { ideaUrl } from './ideas';
 import { moodFor, rankFor, rankName, stageFor, stageName, stagePerk } from './progress';
 import {
   addLearning, addSolidify, currentSkill, defaultState, deleteLearning, feedTreat, finishSkill, isAsleep, MAX_LEVEL, setSkillLevel, SKILL_LEVELS, skillLevel,
@@ -348,6 +349,14 @@ function handleForm(form: HTMLFormElement) {
       if (!label) return;
       commit(() => s.routines[form.dataset.mode as Mode].push({ id: uid(), label }));
       (view.querySelector('form[data-form="add-item"] input') as HTMLInputElement | null)?.focus();
+      break;
+    }
+    case 'idea': {
+      const idea = String(fd.get('idea') ?? '').trim();
+      if (!idea) return;
+      window.open(ideaUrl(idea), '_blank', 'noopener');
+      form.reset();
+      toast(t('toasts.ideaOpened'));
       break;
     }
   }

@@ -45,5 +45,14 @@ export function moreView(s: AppState): string {
     </div>
     <button class="btn danger small" data-action="reset">${t('settings.data.reset')}</button>
   </section>
+
+  <section class="card">
+    <div class="card-head"><div><div class="eyebrow">${t('settings.ideas.eyebrow')}</div><h2>${t('settings.ideas.heading')}</h2></div></div>
+    <form data-form="idea" class="stack">
+      <textarea name="idea" rows="3" maxlength="1000" required placeholder="${ta('settings.ideas.placeholder')}"></textarea>
+      <button class="btn primary" type="submit">${t('settings.ideas.button')}</button>
+    </form>
+    <p class="muted small">${t('settings.ideas.hint')}</p>
+  </section>
   <p class="footer muted small">${t('settings.footer')}</p>`;
 }

@@ -244,6 +244,15 @@ export const ui = {
       import: 'Import',
       reset: 'Reset everything',
     },
+    ideas: {
+      eyebrow: 'Ideas',
+      heading: 'Drop an idea',
+      placeholder: 'What should this app do?',
+      button: 'Send it',
+      hint: 'Opens GitHub with your idea filled in. Tap <b>Create</b> and it’s in.',
+      /** The title of the GitHub issue. */
+      issueTitle: '💡 {idea}',
+    },
     footer: 'Hell Yeah · v0.1',
   },
 
@@ -260,6 +269,7 @@ export const ui = {
     shareFailed: "Couldn't share. Try again.",
     restored: 'Backup restored.',
     badBackup: "That file isn't a Hell Yeah backup.",
+    ideaOpened: 'Opened GitHub. Tap <b>Create</b> and it’s in.',
     missedDay: { one: '{dog} noticed you were gone a day. Loyalty −{loss}.', other: '{dog} noticed you were gone {n} days. Loyalty −{loss}.' },
   },
 
