@@ -38,9 +38,9 @@ export function treeView(s: AppState, ui: UI): string {
     const grown = skills.length > 0;
     const loose = s.learnings.filter((l) => l.branch === b && !l.skillId);
 
-    branches += `<path d="M${TRUNK_TOP[0]} ${TRUNK_TOP[1]} Q${f(c[0])} ${f(c[1])} ${tip[0]} ${tip[1]}" class="branch ${grown ? 'grown' : ''}"/>`;
+    branches += `<path d="M${TRUNK_TOP[0]} ${TRUNK_TOP[1]} Q${f(c[0])} ${f(c[1])} ${tip[0]} ${tip[1]}" class="branch ${grown ? 'grown' : ''}" data-branch="${b}"/>`;
     const labelY = tip[1] - 14;
-    nodes += `<text x="${tip[0]}" y="${labelY}" class="branch-label ${grown ? 'grown' : ''}" text-anchor="middle">${BRANCH_META[b].label.toUpperCase()}</text>`;
+    nodes += `<text x="${tip[0]}" y="${labelY}" class="branch-label ${grown ? 'grown' : ''}" data-branch="${b}" text-anchor="middle">${BRANCH_META[b].label.toUpperCase()}</text>`;
 
     // Loose learnings = small buds near the base of the branch
     loose.slice(0, 40).forEach((_, i) => {
