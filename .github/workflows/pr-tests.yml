@@ -1,0 +1,52 @@
+# Runs every test on each pull request into main, against what main would look
+# like after the merge, and keeps one comment on the PR saying whether they broke.
+#
+# To block merging when they fail: a ruleset on main that requires the
+# "tests / test" status check (see the repo's Settings → Rules).
+name: PR tests
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # A new push to the same PR cancels the older run.
+  group: pr-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  # One comment per PR, edited in place: ❌ when broken, ✅ once fixed.
+  comment:
+    needs: tests
+    if: always() && (needs.tests.result == 'failure' || needs.tests.result == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.pull_request.number }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Tests broke
+        if: needs.tests.result == 'failure'
+        run: |
+          gh pr comment "$PR" --edit-last --create-if-none --body "## ❌ The tests are broken
+          This can't be merged until they pass, so it'll stay open.
+
+          **[See what failed]($RUN)**: open the red ❌ step. If a phone test failed, download **playwright-report** at the bottom of that page for screenshots.
+
+          Push a fix to this branch and the tests run again by themselves."
+
+      - name: Tests pass
+        if: needs.tests.result == 'success'
+        # Only rewrites an earlier ❌ comment; says nothing if the tests never broke.
+        run: |
+          gh pr comment "$PR" --edit-last --body "## ✅ Tests pass
+          Fixed, good to merge. ([run]($RUN))" || true

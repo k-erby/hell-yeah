@@ -1,0 +1,36 @@
+# Brings the newest app changes from `main` into a branch (`sam` by default).
+# It never runs by itself. Run it by hand:
+#   Actions tab → "Update branch" → Run workflow → Run workflow
+#
+# - It only adds to the branch (a merge), it never rewrites or deletes anything.
+# - If the branch doesn't exist yet, it gets created from main.
+# - If the same lines were changed on both sides, it stops without touching
+#   the branch and lists the files that need a human.
+name: Update branch
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to update
+        required: true
+        default: sam
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-branch-${{ inputs.branch }}
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need full history of every branch to merge
+
+      - name: Merge main into your branch
+        env:
+          BRANCH: ${{ inputs.branch }}
+        run: .github/scripts/update-branch.sh

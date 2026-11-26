@@ -18,7 +18,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Same checks as pull requests (tests.yml). If anything fails, nothing gets deployed.
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   build:
+    needs: tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,19 +34,6 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm test
-
-      # End-to-end tests on an emulated iPhone (WebKit) and Pixel (Chromium).
-      # If they fail, nothing gets deployed.
-      - run: npx playwright install --with-deps chromium webkit
-      - run: npm run test:e2e
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: playwright-report
-          path: playwright-report
-          retention-days: 7
-
       - run: npm run build
 
       - uses: actions/configure-pages@v5
