@@ -1,9 +1,9 @@
-import { t, ta } from '../i18n';
-import { DOG_STAGES, moodFor, moodName, stageFor, stageName, stagePerk } from '../progress';
-import { bestStreak, LOY, NAP_HOURS, routinesFinished, streak } from '../state';
-import type { AppState } from '../types';
+import { t, ta } from '../lib/i18n';
+import { DOG_STAGES, moodFor, moodName, stageFor, stageName, stagePerk } from '../app/progress';
+import { bestStreak, LOY, NAP_HOURS, routinesFinished, streak } from '../app/state';
+import type { AppState } from '../app/types';
 
-export function boView(s: AppState): string {
+export function dogView(s: AppState): string {
   const dog = s.profile.dogName;
   const mood = moodFor(s.bo.loyalty);
   const stage = stageFor(s.bo.bond);

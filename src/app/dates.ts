@@ -1,4 +1,4 @@
-import { getLocale } from './i18n';
+import { getLocale } from '../lib/i18n';
 import type { Mode } from './types';
 
 export const pad = (n: number) => String(n).padStart(2, '0');

@@ -52,7 +52,7 @@ export const vibe = {
     'BOSS ASS BITCH', 'UNFUCKWITHABLE', 'FLAWLESS AS FUCK',
   ],
 
-  /** Your rank, from XP. (How much XP each one needs lives in src/progress.ts.) */
+  /** Your rank, from XP. (How much XP each one needs lives in src/app/progress.ts.) */
   ranks: {
     rookie: 'Rookie',
     contender: 'Contender',

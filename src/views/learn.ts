@@ -1,8 +1,8 @@
-import { monthName, monthOf, prettyMonth, shortDay, today, weekDays, weekOf } from '../dates';
-import { t, ta, tn } from '../i18n';
-import { activeSkills, currentSkill, MAX_LEVEL, SKILL_LEVELS, skillStats, XP } from '../state';
-import type { AppState, Branch } from '../types';
-import { BRANCHES, METHODS } from '../types';
+import { monthName, monthOf, prettyMonth, shortDay, today, weekDays, weekOf } from '../app/dates';
+import { t, ta, tn } from '../lib/i18n';
+import { activeSkills, currentSkill, MAX_LEVEL, SKILL_LEVELS, skillStats, XP } from '../app/state';
+import type { AppState, Branch } from '../app/types';
+import { BRANCHES, METHODS } from '../app/types';
 import { esc } from './common';
 
 function branchChips(name: string, selected: Branch) {

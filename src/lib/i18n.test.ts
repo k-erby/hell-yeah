@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { list, setLocale, t, tn, tx, type Messages } from './i18n';
-import { DOG_STAGES, RANKS } from './progress';
-import { defaultRoutines, SKILL_LEVELS } from './state';
-import { dog } from './text/dog';
-import { ui } from './text/ui';
-import { vibe } from './text/vibe';
+import { DOG_STAGES, RANKS } from '../app/progress';
+import { defaultRoutines, SKILL_LEVELS } from '../app/state';
+import { dog } from '../text/dog';
+import { ui } from '../text/ui';
+import { vibe } from '../text/vibe';
 
 /** Walk every message in the text files. */
 function* walk(o: unknown, path = ''): Generator<[string, unknown]> {

@@ -1,8 +1,8 @@
-import { prettyMonth, shortDay } from '../dates';
-import { skillStats } from '../state';
-import type { AppState, Branch, Skill, Solidify } from '../types';
-import { BRANCHES } from '../types';
-import { t, ta, tn, tnx } from '../i18n';
+import { prettyMonth, shortDay } from '../app/dates';
+import { skillStats } from '../app/state';
+import type { AppState, Branch, Skill, Solidify } from '../app/types';
+import { BRANCHES } from '../app/types';
+import { t, ta, tn, tnx } from '../lib/i18n';
 import { esc, type UI } from './common';
 
 type Pt = [number, number];

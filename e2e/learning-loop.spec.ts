@@ -1,4 +1,4 @@
-import { tn, tx } from '../src/i18n';
+import { tn, tx } from '../src/lib/i18n';
 import { expect, test } from './fixtures';
 
 // Labels come from src/text, so rewording a button there doesn't break these tests.

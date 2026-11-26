@@ -1,5 +1,5 @@
-import { esc, t, ta } from '../i18n';
-import type { AppState, Mode, Tab } from '../types';
+import { esc, t, ta } from '../lib/i18n';
+import type { AppState, Mode, Tab } from '../app/types';
 
 export interface UI {
   tab: Tab;
@@ -12,7 +12,7 @@ export interface UI {
   flipped: boolean;
 }
 
-export { esc } from '../i18n';
+export { esc } from '../lib/i18n';
 
 /** Deterministic pick so the line doesn't change every re-render. */
 export function pickBy<T>(arr: T[], seed: string): T {

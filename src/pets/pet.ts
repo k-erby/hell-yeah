@@ -1,8 +1,8 @@
-import { bbox, build, frameInner, SITTING, SPRITE_H, SPRITE_W, type HeadV, type Spec, type TailV } from './bo';
-import { sfx } from './fx';
-import type { Mood } from './types';
-import { tx } from './i18n';
-import type { dog } from './text/dog';
+import { bbox, build, frameInner, SITTING, SPRITE_H, SPRITE_W, type HeadV, type Spec, type TailV } from './dog/sprite';
+import { sfx } from '../effects/fx';
+import type { Mood } from '../app/types';
+import { tx } from '../lib/i18n';
+import type { dog } from '../text/dog';
 
 type StatusKey = keyof typeof dog.status;
 

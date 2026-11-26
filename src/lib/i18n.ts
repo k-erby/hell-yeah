@@ -11,9 +11,9 @@
  * Keys are type-checked: a typo or a missing entry is a build error, not a blank button.
  * Another language later = another folder with the same shape (Messages), passed to setLocale().
  */
-import { dog } from './text/dog';
-import { ui } from './text/ui';
-import { vibe } from './text/vibe';
+import { dog } from '../text/dog';
+import { ui } from '../text/ui';
+import { vibe } from '../text/vibe';
 
 const en = { ...ui, dog, ...vibe };
 

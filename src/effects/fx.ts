@@ -1,5 +1,5 @@
-import type { FxLevel } from './types';
-import { list, tx } from './i18n';
+import type { FxLevel } from '../app/types';
+import { list, tx } from '../lib/i18n';
 
 /* ============================================================
    Explosions. Canvas overlay, particles, word pops, shockwaves.

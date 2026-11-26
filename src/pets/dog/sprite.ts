@@ -1,5 +1,5 @@
-import { BOW, HEAD, LIE, SIT, T_HANG, T_LIE, T_OUT, T_SIT, T_UP, TORSO, type Part } from './bo-parts';
-import type { Mood } from './types';
+import { BOW, HEAD, LIE, SIT, T_HANG, T_LIE, T_OUT, T_SIT, T_UP, TORSO, type Part } from './parts';
+import type { Mood } from '../../app/types';
 
 /* ============================================================
    Bo's pixel art. TODO: change this to a sprite later.

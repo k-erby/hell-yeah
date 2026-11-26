@@ -97,7 +97,7 @@ nextOpens: 'Don't worry, it opens Monday.',   ❌ the ' in Don't ends the text e
 
 ## Development Specific Stuff for i18n and the like (very important, plz read :<)
 
-- Code should never have user-facing text inline. It asks for a key: `t('learn.plant.button')`. Helpers are in `src/i18n.ts`: `t` (HTML, escapes `{vars}`), `tx` (plain text), `ta` (attributes), `tn` (plurals via `Intl.PluralRules`), `list`.
-- Keys are type-checked; a wrong or missing key fails `tsc`. `src/i18n.test.ts` checks for empty text, unbalanced `{}`/`<b>`, and plural forms that disagree.
+- Code should never have user-facing text inline. It asks for a key: `t('learn.plant.button')`. Helpers are in `src/lib/i18n.ts`: `t` (HTML, escapes `{vars}`), `tx` (plain text), `ta` (attributes), `tn` (plurals via `Intl.PluralRules`), `list`.
+- Keys are type-checked; a wrong or missing key fails `tsc`. `src/lib/i18n.test.ts` checks for empty text, unbalanced `{}`/`<b>`, and plural forms that disagree.
 - Another language = a `src/text/<lang>/` folder with the same shape (type `Messages`), loaded with `setLocale()`. Plurals can add `zero`/`two`/`few`/`many` for languages that need them.
 - Dates and numbers are formatted with `Intl` for the current locale, so they don't belong in these files.

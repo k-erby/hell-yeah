@@ -1,5 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test';
-import { tx } from '../src/i18n';
+import { tx } from '../src/lib/i18n';
 
 /** A Wednesday morning, Vancouver time. Fixed so week/month/mode logic is predictable. */
 export const NOW = new Date('2026-11-25T10:00:00-08:00');

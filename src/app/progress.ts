@@ -1,4 +1,4 @@
-import { t } from './i18n';
+import { t } from '../lib/i18n';
 import type { Mood } from './types';
 
 /** Names for these ids live in src/text/vibe.ts. */

@@ -1,7 +1,7 @@
 import { addDays, daysInMonth, monthOf, today, weekOf } from './dates';
 import type { AppState, Branch, Learning, Method, Mode, RoutineItem, Skill } from './types';
 import { MODES } from './types';
-import { list, tx } from './i18n';
+import { list, tx } from '../lib/i18n';
 
 export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, level: 50, mastered: 300 };
 export const TREATS = { routine: 1, learning: 1, solidify: 2, mastered: 3 };

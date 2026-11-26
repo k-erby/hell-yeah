@@ -1,5 +1,5 @@
-import { t, ta, type TextKey } from '../i18n';
-import type { AppState } from '../types';
+import { t, ta, type TextKey } from '../lib/i18n';
+import type { AppState } from '../app/types';
 import { esc } from './common';
 
 function seg(key: string, value: string, options: [string, TextKey][]) {

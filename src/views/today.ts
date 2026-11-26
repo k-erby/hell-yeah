@@ -1,10 +1,10 @@
-import { boSvg, SITTING, SLEEPING } from '../bo';
-import { monthName, prettyDay, today, weekDays, weekOf } from '../dates';
-import { t, ta, tn, list } from '../i18n';
-import { moodFor, moodName, rankFor, rankName, stageFor } from '../progress';
-import { checkedFor, currentSkill, isAsleep, streak } from '../state';
-import type { AppState } from '../types';
-import { MODES } from '../types';
+import { boSvg, SITTING, SLEEPING } from '../pets/dog/sprite';
+import { monthName, prettyDay, today, weekDays, weekOf } from '../app/dates';
+import { t, ta, tn, list } from '../lib/i18n';
+import { moodFor, moodName, rankFor, rankName, stageFor } from '../app/progress';
+import { checkedFor, currentSkill, isAsleep, streak } from '../app/state';
+import type { AppState } from '../app/types';
+import { MODES } from '../app/types';
 import { esc, PENCIL, pickBy, ring, routineEditor, type UI } from './common';
 
 export function todayView(s: AppState, ui: UI, timeMode: string): string {
