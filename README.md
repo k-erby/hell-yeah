@@ -10,3 +10,5 @@ npm run dev
 npm test 
 npm run build   
 ```
+
+*** REMINDER TO ME (kaitlin) -> i need to pay for the sprite i'm using for Bo, or make my own (ugh).
