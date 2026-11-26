@@ -2,7 +2,8 @@ import { prettyMonth, shortDay } from '../dates';
 import { skillStats } from '../state';
 import type { AppState, Branch, Skill, Solidify } from '../types';
 import { BRANCHES } from '../types';
-import { BRANCH_META, esc, METHOD_META, plural, type UI } from './common';
+import { t, ta, tn, tnx } from '../i18n';
+import { esc, type UI } from './common';
 
 type Pt = [number, number];
 const TRUNK_BASE: Pt = [180, 448];
@@ -40,7 +41,7 @@ export function treeView(s: AppState, ui: UI): string {
 
     branches += `<path d="M${TRUNK_TOP[0]} ${TRUNK_TOP[1]} Q${f(c[0])} ${f(c[1])} ${tip[0]} ${tip[1]}" class="branch ${grown ? 'grown' : ''}" data-branch="${b}"/>`;
     const labelY = tip[1] - 14;
-    nodes += `<text x="${tip[0]}" y="${labelY}" class="branch-label ${grown ? 'grown' : ''}" data-branch="${b}" text-anchor="middle">${BRANCH_META[b].label.toUpperCase()}</text>`;
+    nodes += `<text x="${tip[0]}" y="${labelY}" class="branch-label ${grown ? 'grown' : ''}" data-branch="${b}" text-anchor="middle">${t(`branches.${b}.label`).toLocaleUpperCase()}</text>`;
 
     // Loose learnings = small buds near the base of the branch
     loose.slice(0, 40).forEach((_, i) => {
@@ -61,16 +62,16 @@ export function treeView(s: AppState, ui: UI): string {
   const trunk = `<path d="M180 ${TRUNK_BASE[1]} C 176 400, 186 350, ${TRUNK_TOP[0]} ${TRUNK_TOP[1]}" class="trunk"/>`;
 
   const empty = !s.skills.length
-    ? `<div class="tree-empty"><p>Nothing planted yet.</p><button class="btn primary small" data-action="tab" data-tab="learn">Plant this month's skill</button></div>`
+    ? `<div class="tree-empty"><p>${t('tree.empty')}</p><button class="btn primary small" data-action="tab" data-tab="learn">${t('tree.plantButton')}</button></div>`
     : '';
 
   return `
   <header class="page-head">
-    <h1 class="display">The tree.</h1>
-    <p class="tagline">Every skill you've earned, grown out of every day you showed up.</p>
+    <h1 class="display">${t('tree.title')}</h1>
+    <p class="tagline">${t('tree.tagline')}</p>
   </header>
   <section class="card tree-card">
-    <svg class="tree" viewBox="0 0 360 470" role="img" aria-label="Skill tree">
+    <svg class="tree" viewBox="0 0 360 470" role="img" aria-label="${ta('tree.label')}">
       <defs>
         <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent2)"/><stop offset="1" style="stop-color:var(--accent)"/></linearGradient>
         <!-- Branches use canvas coordinates: a bounding-box gradient on a perfectly straight path (CRAFT) has zero width and renders nothing. -->
@@ -80,7 +81,7 @@ export function treeView(s: AppState, ui: UI): string {
       ${roots}${trunk}${branches}${leaves}${nodes}
     </svg>
     ${empty}
-    <div class="legend"><span><i class="lg-node"></i>Skill</span><span><i class="lg-diamond"></i>Week locked in</span><span><i class="lg-leaf"></i>Day learned</span></div>
+    <div class="legend"><span><i class="lg-node"></i>${t('tree.legend.skill')}</span><span><i class="lg-diamond"></i>${t('tree.legend.week')}</span><span><i class="lg-leaf"></i>${t('tree.legend.day')}</span></div>
   </section>
   ${detail(s, ui)}`;
 }
@@ -125,6 +126,7 @@ function detail(s: AppState, ui: UI): string {
   const sk = s.skills.find((k) => k.id === ui.selectedSkill);
   if (sk) {
     const st = skillStats(s, sk);
+    const level = t(`skillLevels.${st.levelId}`);
     const solids = s.solidifies.filter((x) => x.skillId === sk.id);
     // Lock-ins that point at one of this skill's learnings get folded into that learning.
     const lockFor = new Map(solids.filter((x) => x.learningId).map((x) => [x.learningId!, x]));
@@ -132,20 +134,20 @@ function detail(s: AppState, ui: UI): string {
     const loose = solids.filter((x) => !x.learningId || !mine.has(x.learningId));
     const recent = [...st.learnings].reverse();
     const shown = recent.filter((l, i) => i < 10 || lockFor.has(l.id));
-    const lockLine = (x: Solidify) => `<div class="lock-in"><span class="entry-tag">Locked in · ${METHOD_META[x.method]}</span>${esc(x.text)}</div>`;
+    const lockLine = (x: Solidify) => `<div class="lock-in"><span class="entry-tag">${t('tree.detail.lockInTag', { method: t(`methods.${x.method}`) })}</span>${esc(x.text)}</div>`;
     const looseBlocks = loose
       .map((x) => {
         const l = x.learningId ? s.learnings.find((y) => y.id === x.learningId) : undefined;
-        return `<div class="entry"><span class="entry-tag">Locked in · ${METHOD_META[x.method]}</span>${esc(x.text)}${l ? `<div class="from-learning"><small>${shortDay(l.date)}</small>${esc(l.text)}</div>` : ''}</div>`;
+        return `<div class="entry"><span class="entry-tag">${t('tree.detail.lockInTag', { method: t(`methods.${x.method}`) })}</span>${esc(x.text)}${l ? `<div class="from-learning"><small>${shortDay(l.date)}</small>${esc(l.text)}</div>` : ''}</div>`;
       })
       .join('');
     return `<section class="card">
-      <div class="card-head"><div><div class="eyebrow">${BRANCH_META[sk.branch].label} · ${prettyMonth(sk.month)}</div><h2 class="display-sm">${esc(sk.name)}</h2></div>
-        <span class="badge ${sk.status === 'mastered' ? 'ok' : ''}">${sk.status === 'mastered' ? 'Mastered' : st.levelName}</span></div>
+      <div class="card-head"><div><div class="eyebrow">${t('tree.detail.eyebrow', { branch: t(`branches.${sk.branch}.label`), month: prettyMonth(sk.month) })}</div><h2 class="display-sm">${esc(sk.name)}</h2></div>
+        <span class="badge ${sk.status === 'mastered' ? 'ok' : ''}">${sk.status === 'mastered' ? t('tree.detail.mastered') : level}</span></div>
       <div class="mini-stats">
-        <div><b>${st.levelName}</b><span>progress</span></div>
-        <div><b>${st.learnings.length}</b><span>things learned</span></div>
-        <div><b>${st.solid}</b><span>locked in</span></div>
+        <div><b>${level}</b><span>${t('tree.detail.progress')}</span></div>
+        <div><b>${st.learnings.length}</b><span>${tn('tree.detail.thingsLearned', st.learnings.length)}</span></div>
+        <div><b>${st.solid}</b><span>${t('tree.detail.lockedIn')}</span></div>
       </div>
       ${looseBlocks}
       <ul class="history">${shown
@@ -154,16 +156,16 @@ function detail(s: AppState, ui: UI): string {
           return `<li><div><small>${shortDay(l.date)}</small>${esc(l.text)}${x ? lockLine(x) : ''}</div></li>`;
         })
         .join('')}</ul>
-      <button class="btn ghost small" data-action="skill" data-id="">Close</button>
+      <button class="btn ghost small" data-action="skill" data-id="">${t('common.close')}</button>
     </section>`;
   }
   const rows = BRANCHES.map((b) => {
     const skills = s.skills.filter((k) => k.branch === b);
     const mastered = skills.filter((k) => k.status === 'mastered').length;
     const leaves = s.learnings.filter((l) => l.branch === b).length;
-    return `<li><div><b>${BRANCH_META[b].label}</b><small>${BRANCH_META[b].blurb}</small></div>
-      <span class="muted small">${mastered}/${skills.length} skills · ${plural(leaves, 'leaf').replace('leafs', 'leaves')}</span></li>`;
+    return `<li><div><b>${t(`branches.${b}.label`)}</b><small>${t(`branches.${b}.blurb`)}</small></div>
+      <span class="muted small">${t('tree.branches.row', { mastered, total: skills.length, leaves: tnx('tree.branches.leaves', leaves) })}</span></li>`;
   }).join('');
-  return `<section class="card"><div class="card-head"><div><div class="eyebrow">Branches</div><h2>Where you're growing</h2></div></div>
-    <ul class="history branches">${rows}</ul><p class="muted small">Tap a skill on the tree for the full story.</p></section>`;
+  return `<section class="card"><div class="card-head"><div><div class="eyebrow">${t('tree.branches.eyebrow')}</div><h2>${t('tree.branches.heading')}</h2></div></div>
+    <ul class="history branches">${rows}</ul><p class="muted small">${t('tree.branches.hint')}</p></section>`;
 }

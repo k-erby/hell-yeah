@@ -1,8 +1,9 @@
 import './styles.css';
-import { dayKey, modeAt, monthOf, today } from './dates';
+import { dayKey, modeAt, monthName, monthOf, today } from './dates';
 import { bigFx, hitFx, itemFx, sfx, type FxOpts } from './fx';
 import { Pet } from './pet';
-import { moodFor, MOODS, rankFor, stageFor } from './progress';
+import { t, tn, tx, type TextKey } from './i18n';
+import { moodFor, rankFor, rankName, stageFor, stageName, stagePerk } from './progress';
 import {
   addLearning, addSolidify, currentSkill, defaultState, deleteLearning, feedTreat, finishSkill, isAsleep, MAX_LEVEL, setSkillLevel, SKILL_LEVELS, skillLevel,
   normalize, settle, startSkill, streak, toggleItem, uid, LOY,
@@ -11,7 +12,7 @@ import { LocalRepo } from './storage';
 import type { AppState, Branch, Method, Mode, Tab } from './types';
 import { BRANCHES, METHODS } from './types';
 import { boView } from './views/bo';
-import { esc, ICONS, MODE_META, type UI } from './views/common';
+import { esc, ICONS, type UI } from './views/common';
 import { learnView } from './views/learn';
 import { moreView } from './views/more';
 import { todayView } from './views/today';
@@ -66,12 +67,12 @@ function applyTheme() {
 
 // ---------- render ----------
 
-const TABS: [Tab, string][] = [['today', 'Today'], ['learn', 'Learn'], ['tree', 'Tree'], ['bo', ''], ['more', 'More']];
+const TABS: [Tab, TextKey | ''][] = [['today', 'nav.today'], ['learn', 'nav.learn'], ['tree', 'nav.tree'], ['bo', ''], ['more', 'nav.more']];
 
 function renderNav() {
   nav.innerHTML = TABS.map(
-    ([t, label]) => `<button class="nav-btn ${ui.tab === t ? 'on' : ''}" data-action="tab" data-tab="${t}" aria-label="${t === 'bo' ? esc(s.profile.dogName) : label}">
-      ${ICONS[t]}<span>${t === 'bo' ? esc(s.profile.dogName) : label}</span></button>`,
+    ([tab, label]) => `<button class="nav-btn ${ui.tab === tab ? 'on' : ''}" data-action="tab" data-tab="${tab}" aria-label="${label ? t(label) : esc(s.profile.dogName)}">
+      ${ICONS[tab]}<span>${label ? t(label) : esc(s.profile.dogName)}</span></button>`,
   ).join('');
 }
 
@@ -115,7 +116,8 @@ function toast(msg: string) {
   toastTimer = window.setTimeout(() => el!.classList.remove('show'), 2600);
 }
 
-function celebrate(eyebrow: string, title: string, sub: string, button = 'Obviously.', boom?: string) {
+/** Full-screen celebration. All arguments are HTML (use t(), which escapes {vars}). */
+function celebrate(eyebrow: string, title: string, sub: string, button = t('celebrate.ok'), boom?: string) {
   const m = document.createElement('div');
   m.className = 'modal';
   m.innerHTML = `<div class="modal-card"><div class="eyebrow">${eyebrow}</div><div class="display big">${title}</div><p>${sub}</p><button class="btn primary">${button}</button></div>`;
@@ -123,7 +125,9 @@ function celebrate(eyebrow: string, title: string, sub: string, button = 'Obviou
     if (e.target === m || (e.target as HTMLElement).closest('button')) m.remove();
   });
   document.body.appendChild(m);
-  bigFx(fxo(), boom ?? title.replace(/<[^>]+>/g, '').toUpperCase());
+  const plain = document.createElement('div');
+  plain.innerHTML = title;
+  bigFx(fxo(), boom ?? (plain.textContent ?? '').toLocaleUpperCase());
 }
 
 /** Run a mutation, then save/render and celebrate any level-ups it caused. */
@@ -136,9 +140,12 @@ function commit(fn: () => void) {
   render();
   const r1 = rankFor(s.xp);
   const b1 = stageFor(s.bo.bond);
-  if (r1.index > r0) setTimeout(() => celebrate('New rank', r1.name, `${s.xp.toLocaleString()} XP and climbing. Act like you expected it.`), 900);
+  if (r1.index > r0) setTimeout(() => celebrate(t('celebrate.rankEyebrow'), rankName(r1.cur.id), t('celebrate.rankSub', { xp: s.xp })), 900);
   if (b1.index > b0)
-    setTimeout(() => celebrate(`${esc(s.profile.dogName)} leveled up`, b1.name, b1.cur.perk, 'Good boy.'), r1.index > r0 ? 2600 : 900);
+    setTimeout(
+      () => celebrate(t('celebrate.dogEyebrow', { dog: s.profile.dogName }), stageName(b1.cur.id), stagePerk(b1.cur.id), t('celebrate.dogButton')),
+      r1.index > r0 ? 2600 : 900,
+    );
   return s.xp - xp0;
 }
 
@@ -168,13 +175,13 @@ function handleAction(action: string, el: HTMLElement) {
       });
       if (result.checked) {
         itemFx(x, y, fxo());
-        if (gained > 0) toast(`+${gained} XP`);
+        if (gained > 0) toast(t('toasts.xp', { xp: gained }));
       } else if (s.settings.sound) sfx('tick', 0.4);
       if (result.routineDone) {
         pet.celebrate();
         setTimeout(() => {
           bigFx(fxo());
-          toast(`<b>${MODE_META[ui.mode].title}: done.</b> ${esc(s.profile.dogName)} approves.`);
+          toast(t('toasts.routineDone', { routine: tx(`modes.${ui.mode}.title`), dog: s.profile.dogName }));
         }, 350);
       }
       break;
@@ -185,28 +192,29 @@ function handleAction(action: string, el: HTMLElement) {
       const level = Number(el.dataset.level);
       const before = skillLevel(sk);
       if (level === before) return;
-      if (level === MAX_LEVEL && !confirm(`Nailed "${sk.name}"? That marks it mastered. Be honest.`)) return;
+      if (level === MAX_LEVEL && !confirm(tx('confirm.master', { skill: sk.name }))) return;
       const [x, y] = center(el);
       const gained = commit(() => setSkillLevel(s, id, level, currentDay));
       if (level === MAX_LEVEL) {
-        celebrate('Skill mastered', esc(sk.name), 'Another branch on the tree. That one is yours forever.', 'Next.', 'MASTERED');
+        celebrate(t('celebrate.masteredEyebrow'), esc(sk.name), t('celebrate.masteredSub'), t('celebrate.masteredButton'), tx('celebrate.masteredBoom'));
       } else if (level > before) {
-        hitFx(x, y, fxo(), gained ? `+${gained} XP` : SKILL_LEVELS[level].toUpperCase());
-        toast(`<b>${esc(sk.name)}</b>: ${SKILL_LEVELS[level]}.`);
+        const name = tx(`skillLevels.${SKILL_LEVELS[level]}`);
+        hitFx(x, y, fxo(), gained ? tx('toasts.xp', { xp: gained }) : name.toLocaleUpperCase());
+        toast(t('toasts.skillLevel', { skill: sk.name, level: name }));
       } else {
-        toast(`Moved back to <b>${SKILL_LEVELS[level]}</b>. Honesty is hot.`);
+        toast(t('toasts.skillDown', { level: tx(`skillLevels.${SKILL_LEVELS[level]}`) }));
       }
       break;
     }
     case 'drop': {
       const sk = s.skills.find((k) => k.id === id);
-      if (!sk || !confirm(`Drop "${sk.name}"? No shame. Not every skill deserves you.`)) return;
+      if (!sk || !confirm(tx('confirm.drop', { skill: sk.name }))) return;
       commit(() => finishSkill(s, id, 'dropped', currentDay));
-      toast('Dropped. Onward.');
+      toast(t('toasts.dropped'));
       break;
     }
     case 'del-learning':
-      if (!confirm('Delete this entry?')) return;
+      if (!confirm(tx('confirm.deleteEntry'))) return;
       commit(() => deleteLearning(s, id));
       break;
     case 'skill':
@@ -280,14 +288,14 @@ function handleAction(action: string, el: HTMLElement) {
       exportData();
       break;
     case 'reset':
-      if (!confirm('Reset EVERYTHING? Routines, XP, the tree, Bo. All of it.')) return;
-      if (!confirm('Seriously. This cannot be undone. Export first if you want a backup.')) return;
+      if (!confirm(tx('confirm.reset'))) return;
+      if (!confirm(tx('confirm.resetAgain'))) return;
       s = defaultState();
       ui.tab = 'today';
       save();
       applyTheme();
       render();
-      toast('Fresh start.');
+      toast(t('toasts.fresh'));
       break;
   }
 }
@@ -304,7 +312,7 @@ function handleForm(form: HTMLFormElement) {
       if (!BRANCHES.includes(branch)) return;
       const sk = s.skills.find((k) => k.id === fd.get('skillId') && k.status === 'active');
       const gained = commit(() => addLearning(s, text, sk?.branch ?? branch, sk?.id, currentDay));
-      hitFx(x, y, fxo(), gained ? `+${gained} XP` : 'NOTED');
+      hitFx(x, y, fxo(), gained ? tx('toasts.xp', { xp: gained }) : tx('common.noted'));
       break;
     }
     case 'solidify': {
@@ -315,7 +323,7 @@ function handleForm(form: HTMLFormElement) {
       const picked = fd.get('skillId');
       const skill = picked === null ? undefined : s.skills.some((k) => k.id === picked) ? String(picked) : null;
       commit(() => addSolidify(s, text, method, learningId, currentDay, skill));
-      celebrate('Week locked in.', 'Solidified.', "That one's not going anywhere. Neither are you.");
+      celebrate(t('celebrate.weekEyebrow'), t('celebrate.weekTitle'), t('celebrate.weekSub'));
       break;
     }
     case 'skill-learning': {
@@ -323,7 +331,7 @@ function handleForm(form: HTMLFormElement) {
       const text = String(fd.get('text') ?? '').trim();
       if (!sk || !text) return;
       const gained = commit(() => addLearning(s, text, sk.branch, sk.id, currentDay));
-      hitFx(x, y, fxo(), gained ? `+${gained} XP` : 'NOTED');
+      hitFx(x, y, fxo(), gained ? tx('toasts.xp', { xp: gained }) : tx('common.noted'));
       break;
     }
     case 'skill': {
@@ -331,8 +339,8 @@ function handleForm(form: HTMLFormElement) {
       const branch = fd.get('branch') as Branch;
       if (!name || !BRANCHES.includes(branch)) return;
       commit(() => startSkill(s, name, branch, currentDay));
-      hitFx(x, y, fxo(), 'PLANTED');
-      toast(`<b>${esc(name)}</b> is planted. Feed it every day.`);
+      hitFx(x, y, fxo(), tx('celebrate.planted'));
+      toast(t('toasts.planted', { skill: name }));
       break;
     }
     case 'add-item': {
@@ -372,25 +380,25 @@ function handleChange(el: HTMLInputElement) {
 // ---------- share / backup ----------
 
 async function shareStatus() {
-  const t = currentDay;
-  const sk = currentSkill(s, t);
+  const day = currentDay;
+  const sk = currentSkill(s, day);
   const mood = moodFor(s.bo.loyalty);
   const text = [
-    `${s.profile.name}'s status:`,
-    `🔥 ${streak(s, t)}-day streak`,
-    `👑 ${rankFor(s.xp).name} · ${s.xp.toLocaleString()} XP`,
-    `🌱 ${monthOf(t)} skill: ${sk ? sk.name : 'not planted yet'}`,
-    `🐕 ${s.profile.dogName}: ${MOODS[mood].label} (${Math.round(s.bo.loyalty)}% loyal)`,
+    tx('share.heading', { name: s.profile.name }),
+    tx('share.streak', { n: streak(s, day) }),
+    tx('share.rank', { rank: tx(`ranks.${rankFor(s.xp).cur.id}`), xp: s.xp }),
+    tx('share.skill', { month: monthName(monthOf(day)), skill: sk ? sk.name : tx('share.noSkill') }),
+    tx('share.dog', { dog: s.profile.dogName, mood: tx(`moods.${mood}`), loyalty: Math.round(s.bo.loyalty) }),
   ].join('\n');
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Hell Yeah status', text });
+      await navigator.share({ title: tx('share.title'), text });
       return;
     }
     await navigator.clipboard.writeText(text);
-    toast('Status copied. Paste it to your buddy.');
+    toast(t('toasts.copied'));
   } catch (e) {
-    if ((e as DOMException)?.name !== 'AbortError') toast("Couldn't share. Try again.");
+    if ((e as DOMException)?.name !== 'AbortError') toast(t('toasts.shareFailed'));
   }
 }
 
@@ -411,15 +419,15 @@ async function importData(input: HTMLInputElement) {
   try {
     const data = JSON.parse(await file.text());
     if (!data || typeof data !== 'object' || !('routines' in data)) throw new Error('not a backup');
-    if (!confirm('Replace everything on this phone with this backup?')) return;
+    if (!confirm(tx('confirm.import'))) return;
     s = normalize(data);
     settle(s, currentDay);
     save();
     applyTheme();
     render();
-    toast('Backup restored.');
+    toast(t('toasts.restored'));
   } catch {
-    toast("That file isn't a Hell Yeah backup.");
+    toast(t('toasts.badBackup'));
   } finally {
     input.value = '';
   }
@@ -447,6 +455,8 @@ app.addEventListener('change', (e) => {
   if (el.dataset.change) handleChange(el);
 });
 
+const missedToast = (n: number) => tn('toasts.missedDay', n, { dog: s.profile.dogName, loss: n * LOY.decay });
+
 /** Handle day rollover and morning → afternoon → night while the app is open. */
 function tick() {
   const d = today();
@@ -455,7 +465,7 @@ function tick() {
   if (d !== currentDay) {
     currentDay = d;
     const missed = settle(s, d);
-    if (missed) toast(`${esc(s.profile.dogName)} noticed you were gone. Loyalty −${missed * LOY.decay}.`);
+    if (missed) toast(missedToast(missed));
     save();
     changed = true;
   }
@@ -479,7 +489,7 @@ async function boot() {
   render();
   if (missed > 0) {
     setTimeout(
-      () => toast(`${esc(s.profile.dogName)} noticed you were gone ${missed === 1 ? 'a day' : `${missed} days`}. Loyalty −${missed * LOY.decay}.`),
+      () => toast(missedToast(missed)),
       600,
     );
   }

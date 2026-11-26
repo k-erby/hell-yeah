@@ -1,36 +1,37 @@
 import { boSvg, SITTING, SLEEPING } from '../bo';
 import { monthName, prettyDay, today, weekDays, weekOf } from '../dates';
-import { moodFor, MOODS, rankFor, stageFor } from '../progress';
+import { t, ta, tn, list } from '../i18n';
+import { moodFor, moodName, rankFor, rankName, stageFor } from '../progress';
 import { checkedFor, currentSkill, isAsleep, streak } from '../state';
 import type { AppState } from '../types';
 import { MODES } from '../types';
-import { esc, MODE_META, PENCIL, pickBy, ring, routineEditor, type UI } from './common';
+import { esc, PENCIL, pickBy, ring, routineEditor, type UI } from './common';
 
 export function todayView(s: AppState, ui: UI, timeMode: string): string {
-  const t = today();
+  const day = today();
   const mode = ui.mode;
-  const meta = MODE_META[mode];
   const items = s.routines[mode];
-  const checked = checkedFor(s, t, mode);
+  const checked = checkedFor(s, day, mode);
   const done = items.filter((i) => checked.has(i.id)).length;
   const allDone = items.length > 0 && done === items.length;
   const rank = rankFor(s.xp);
-  const st = streak(s, t);
+  const st = streak(s, day);
   const mood = moodFor(s.bo.loyalty);
   const stage = stageFor(s.bo.bond);
-  const lines = [...meta.lines, ...meta.filthy];
+  const lines = list(`lines.${mode}`);
+  const title = t(`modes.${mode}.title`);
 
   const segs = MODES.map((m) => {
     const its = s.routines[m];
-    const c = checkedFor(s, t, m);
+    const c = checkedFor(s, day, m);
     const n = its.filter((i) => c.has(i.id)).length;
     const full = its.length > 0 && n === its.length;
     return `<button class="seg-btn ${m === mode ? 'on' : ''} ${full ? 'full' : ''}" data-action="mode" data-mode="${m}">
-      ${m === timeMode ? '<span class="now-dot" aria-label="now"></span>' : ''}
-      <span>${MODE_META[m].label}</span><small>${n}/${its.length}</small></button>`;
+      ${m === timeMode ? `<span class="now-dot" aria-label="${ta('today.now')}"></span>` : ''}
+      <span>${t(`modes.${m}.label`)}</span><small>${n}/${its.length}</small></button>`;
   }).join('');
 
-  const list = items.length
+  const checks = items.length
     ? items
         .map((i) => {
           const on = checked.has(i.id);
@@ -42,72 +43,72 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
           </button></li>`;
         })
         .join('')
-    : `<li class="empty">Nothing here yet. <button class="link" data-action="flip">Add some tasks</button></li>`;
+    : `<li class="empty">${t('today.emptyList')} <button class="link" data-action="flip">${t('today.addSome')}</button></li>`;
 
   // Nudges for the daily / weekly / monthly goals
   const nudges: string[] = [];
-  const learned = s.learnings.filter((l) => l.date === t);
+  const learned = s.learnings.filter((l) => l.date === day);
   if (learned.length) {
-    nudges.push(`<div class="nudge done"><span class="nudge-k">Today</span><span>Learned: <b>${esc(learned[learned.length - 1].text)}</b></span></div>`);
+    nudges.push(`<div class="nudge done"><span class="nudge-k">${t('today.nudges.today')}</span><span>${t('today.nudges.learned', { text: learned[learned.length - 1].text })}</span></div>`);
   } else {
-    nudges.push(`<button class="nudge" data-action="tab" data-tab="learn"><span class="nudge-k">Daily</span><span>Nothing learned yet today. <b>Fix that →</b></span></button>`);
+    nudges.push(`<button class="nudge" data-action="tab" data-tab="learn"><span class="nudge-k">${t('today.nudges.daily')}</span><span>${t('today.nudges.notLearned')}</span></button>`);
   }
-  const week = weekOf(t);
-  const dow = weekDays(t).indexOf(t);
+  const week = weekOf(day);
+  const dow = weekDays(day).indexOf(day);
   if (!s.solidifies.some((x) => x.week === week) && dow >= 3) {
-    nudges.push(`<button class="nudge" data-action="tab" data-tab="learn"><span class="nudge-k">Weekly</span><span>${7 - dow} day${7 - dow === 1 ? '' : 's'} left to lock something in. <b>Do it →</b></span></button>`);
+    nudges.push(`<button class="nudge" data-action="tab" data-tab="learn"><span class="nudge-k">${t('today.nudges.weekly')}</span><span>${tn('today.nudges.lockIn', 7 - dow)}</span></button>`);
   }
-  const sk = currentSkill(s, t);
+  const sk = currentSkill(s, day);
   if (!sk) {
-    nudges.push(`<button class="nudge" data-action="tab" data-tab="learn"><span class="nudge-k">Monthly</span><span>No skill planted for ${monthName(t.slice(0, 7))}. <b>Pick one →</b></span></button>`);
+    nudges.push(`<button class="nudge" data-action="tab" data-tab="learn"><span class="nudge-k">${t('today.nudges.monthly')}</span><span>${t('today.nudges.noSkill', { month: monthName(day.slice(0, 7)) })}</span></button>`);
   }
 
   return `
   <header class="hero">
     <div class="hero-top">
       <div>
-        <div class="eyebrow">${prettyDay(t)}</div>
-        <h1 class="display">${meta.greet},<br>${esc(s.profile.name)}.</h1>
-        <p class="tagline">${esc(pickBy(lines, t + mode))}</p>
+        <div class="eyebrow">${prettyDay(day)}</div>
+        <h1 class="display">${t('today.greeting', { greet: t(`modes.${mode}.greet`), name: s.profile.name })}</h1>
+        <p class="tagline">${esc(pickBy(lines, day + mode))}</p>
       </div>
-      <button class="mini-bo mood-${mood}" data-action="tab" data-tab="bo" aria-label="${esc(s.profile.dogName)}: ${MOODS[mood].label}">
+      <button class="mini-bo mood-${mood}" data-action="tab" data-tab="bo" aria-label="${esc(s.profile.dogName)}: ${moodName(mood)}">
         <span class="lcd ${isAsleep(s) ? 'asleep' : ''}">${boSvg(stage.index, mood, stage.index === 0 ? 'pup' : '', isAsleep(s) ? SLEEPING : SITTING)}</span>
         <span class="mini-meter"><i style="width:${s.bo.loyalty}%"></i></span>
       </button>
     </div>
     <div class="stats-row">
-      <span class="chip rank">${rank.name}</span>
-      <span class="chip">${s.xp.toLocaleString()} XP</span>
-      <span class="chip ${st >= 3 ? 'hot' : ''}">${st}-day streak</span>
+      <span class="chip rank">${rankName(rank.cur.id)}</span>
+      <span class="chip">${t('today.xp', { xp: s.xp })}</span>
+      <span class="chip ${st >= 3 ? 'hot' : ''}">${tn('today.streak', st)}</span>
     </div>
-    <div class="xpbar" title="${rank.next ? `${rank.next.xp - s.xp} XP to ${rank.next.name}` : 'Max rank'}"><i style="width:${rank.pct}%"></i></div>
-    <div class="xpbar-label">${rank.next ? `${(rank.next.xp - s.xp).toLocaleString()} XP to <b>${rank.next.name}</b>` : 'Top rank. Obviously.'}</div>
+    <div class="xpbar" title="${rank.next ? ta('today.toNextRankPlain', { xp: rank.next.xp - s.xp, rank: rankName(rank.next.id) }) : ta('today.maxRank')}"><i style="width:${rank.pct}%"></i></div>
+    <div class="xpbar-label">${rank.next ? t('today.toNextRank', { xp: rank.next.xp - s.xp, rank: rankName(rank.next.id) }) : t('today.topRank')}</div>
   </header>
 
-  <nav class="seg" aria-label="Routine">${segs}</nav>
+  <nav class="seg" aria-label="${ta('today.routinePicker')}">${segs}</nav>
 
   <section class="flip ${ui.flipped ? 'flipped' : ''}" id="routine-card">
     <div class="flip-inner">
       <div class="card checklist face-front ${allDone ? 'complete' : ''}">
         <div class="card-head">
           <div>
-            <h2>${meta.title}</h2>
-            <p class="muted">${allDone ? 'Handled. Every single one.' : `${items.length - done} to go`}</p>
+            <h2>${title}</h2>
+            <p class="muted">${allDone ? t('today.allDone') : t('today.toGo', { n: items.length - done })}</p>
           </div>
           <div class="head-right">
             <div class="ring-wrap">${ring(items.length ? (done / items.length) * 100 : 0)}<span>${done}/${items.length}</span></div>
-            <button class="edit-btn" data-action="flip" aria-label="Edit ${meta.title}">${PENCIL}</button>
+            <button class="edit-btn" data-action="flip" aria-label="${ta('today.edit', { title: t(`modes.${mode}.title`) })}">${PENCIL}</button>
           </div>
         </div>
-        <ul class="checks">${list}</ul>
+        <ul class="checks">${checks}</ul>
       </div>
       <div class="card face-back">
         <div class="card-head">
-          <div><div class="eyebrow">Editing</div><h2>${meta.title}</h2></div>
-          <button class="btn small primary" data-action="flip">Done</button>
+          <div><div class="eyebrow">${t('today.editing')}</div><h2>${title}</h2></div>
+          <button class="btn small primary" data-action="flip">${t('common.done')}</button>
         </div>
         ${routineEditor(s, mode)}
-        <p class="muted small">Tag a task ${esc(s.profile.dogName)} for bonus loyalty. Changes save instantly.</p>
+        <p class="muted small">${t('today.editHint', { dog: s.profile.dogName })}</p>
       </div>
     </div>
   </section>

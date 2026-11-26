@@ -42,3 +42,7 @@ omg i just learned about a push notification thing for iOS called "Bark" - brill
 - also, the "how the pet thing" works should be higher up - it feels disjointed right now and i'm too lazy to copy and paste (future kaitlin problem)
 - the "share" feature needs soooo much more work, since it kinda just opens your messages and give you some info you may not want to send (like your being a rookie or your XP). I think it would be cool to have it be more like the wordle share - maybe you can cater it to what "daily" "weekly" or "monthly"
 
+## Changing the app's words
+
+All user-facing text lives in [`src/text/`](src/text/README.md): pep talks and explosion words in `vibe.ts`, everything else in `ui.ts` and `dog.ts`. That README has a beginner-friendly guide with examples.
+

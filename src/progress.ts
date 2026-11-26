@@ -1,39 +1,46 @@
+import { t } from './i18n';
 import type { Mood } from './types';
 
+/** Names for these ids live in src/text/vibe.ts. */
 export const RANKS = [
-  { name: 'Rookie', xp: 0 },
+  { id: 'rookie', xp: 0 },
   // A full day of routines + a learning is ~150-200 XP, so roughly:
-  { name: 'Contender', xp: 1_000 }, //    ~1 week
-  { name: 'Boss', xp: 3_500 }, //         ~3 weeks
-  { name: 'Heavy Hitter', xp: 8_000 }, // ~1.5 months
-  { name: 'Icon', xp: 16_000 }, //        ~3 months
-  { name: 'Queen', xp: 28_000 }, //       ~5 months
-  { name: 'Untouchable', xp: 45_000 }, // ~8 months
-  { name: 'Legend', xp: 70_000 }, //      ~1 year
-];
+  { id: 'contender', xp: 1_000 }, //    ~1 week
+  { id: 'boss', xp: 3_500 }, //         ~3 weeks
+  { id: 'heavyHitter', xp: 8_000 }, // ~1.5 months
+  { id: 'icon', xp: 16_000 }, //        ~3 months
+  { id: 'queen', xp: 28_000 }, //       ~5 months
+  { id: 'untouchable', xp: 45_000 }, // ~8 months
+  { id: 'legend', xp: 70_000 }, //      ~1 year
+] as const;
 
-export const BO_STAGES = [
-  { name: 'Pup', bond: 0, perk: 'Fresh recruit. Chews things.' },
-  { name: 'Recruit', bond: 80, perk: 'Knows your schedule better than you do.' },
-  { name: 'Partner', bond: 300, perk: 'Fully grown. Fully loyal.' },
-  { name: 'K9 Unit', bond: 750, perk: 'Will die for you. Would prefer a treat.' },
-  { name: 'Alpha', bond: 1500, perk: 'Runs this house. Lets you think you do.' },
-  { name: 'Legend', bond: 2800, perk: 'Ride or die, for real.' },
-];
+export const DOG_STAGES = [
+  { id: 'pup', bond: 0 },
+  { id: 'recruit', bond: 80 },
+  { id: 'partner', bond: 300 },
+  { id: 'k9', bond: 750 },
+  { id: 'alpha', bond: 1500 },
+  { id: 'legend', bond: 2800 },
+] as const;
 
-function ladder<T extends { name: string }>(list: T[], value: number, key: (t: T) => number) {
+function ladder<T>(arr: readonly T[], value: number, key: (t: T) => number) {
   let index = 0;
-  list.forEach((t, i) => {
+  arr.forEach((t, i) => {
     if (value >= key(t)) index = i;
   });
-  const cur = list[index];
-  const next = list[index + 1];
+  const cur = arr[index];
+  const next: T | undefined = arr[index + 1];
   const pct = next ? ((value - key(cur)) / (key(next) - key(cur))) * 100 : 100;
-  return { index, name: cur.name, cur, next, pct: Math.max(0, Math.min(100, pct)) };
+  return { index, cur, next, pct: Math.max(0, Math.min(100, pct)) };
 }
 
 export const rankFor = (xp: number) => ladder(RANKS, xp, (r) => r.xp);
-export const stageFor = (bond: number) => ladder(BO_STAGES, bond, (b) => b.bond);
+export const stageFor = (bond: number) => ladder(DOG_STAGES, bond, (b) => b.bond);
+
+/** Display names. */
+export const rankName = (id: (typeof RANKS)[number]['id']) => t(`ranks.${id}`);
+export const stageName = (id: (typeof DOG_STAGES)[number]['id']) => t(`dogStages.${id}.name`);
+export const stagePerk = (id: (typeof DOG_STAGES)[number]['id']) => t(`dogStages.${id}.perk`);
 
 export function moodFor(loyalty: number): Mood {
   if (loyalty >= 85) return 'ride-or-die';
@@ -43,11 +50,4 @@ export function moodFor(loyalty: number): Mood {
   return 'sulking';
 }
 
-export const MOODS: Record<Mood, { label: string }> = {
-  'ride-or-die': { label: 'Ride or die' },
-  'locked-in': { label: 'Locked in' },
-  'on-watch': { label: 'On watch' },
-  'side-eye': { label: 'Side-eye' },
-  sulking: { label: 'Sulking' },
-};
-
+export const moodName = (m: Mood) => t(`moods.${m}`);

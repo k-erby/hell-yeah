@@ -1,6 +1,10 @@
 import { bbox, build, frameInner, SITTING, SPRITE_H, SPRITE_W, type HeadV, type Spec, type TailV } from './bo';
 import { sfx } from './fx';
 import type { Mood } from './types';
+import { tx } from './i18n';
+import type { dog } from './text/dog';
+
+type StatusKey = keyof typeof dog.status;
 
 /* ============================================================
    Bo, the pocket pet. A tiny behaviour engine with two views:
@@ -31,7 +35,7 @@ type Tail = '' | 'wag' | 'wag-fast' | 'droop';
 type FaceMod = '' | 'tilt' | 'look-up' | 'boop' | 'lean' | 'shake';
 
 interface Act {
-  label: string;
+  label: StatusKey;
   enter?(): void;
   update(dt: number): boolean; // true = finished
   exit?(): void;
@@ -222,7 +226,7 @@ export class Pet {
     if (this.sleeping) return; // sleeps right through it
     const { mood } = this.env();
     if ((mood === 'sulking' && chance(0.5)) || (mood === 'side-eye' && chance(0.25))) {
-      this.interrupt([this.watchBall(0.9, false), this.turnAway(), this.wait(2, 'lie', 'droop', 'not interested')]);
+      this.interrupt([this.watchBall(0.9, false), this.turnAway(), this.wait(2, 'lie', 'droop', 'notInterested')]);
       return;
     }
     this.interrupt([this.watchBall(0.35, true), this.chaseBall(true), ...this.bringBack()]);
@@ -234,14 +238,14 @@ export class Pet {
       return;
     }
     if (this.wakeIfSleeping()) return;
-    this.interrupt([this.wait(0.15, 'sit', '', 'barking'), this.bark(3, true), this.wait(1.2, 'pant', 'wag', 'proud of himself')]);
+    this.interrupt([this.wait(0.15, 'sit', '', 'barking'), this.bark(3, true), this.wait(1.2, 'pant', 'wag', 'proudOfHimself')]);
   }
 
   giveTreat() {
     this.setView('close');
     if (this.treat.on) return;
     if (this.env().treats <= 0) {
-      this.cInterrupt([this.cFace(1.6, 'up', false, false, 'tilt', 'no treats · earn more'), this.cIdle(1)]);
+      this.cInterrupt([this.cFace(1.6, 'up', false, false, 'tilt', 'noTreats'), this.cIdle(1)]);
       return;
     }
     if (!this.hooks.onTreat()) return;
@@ -315,11 +319,11 @@ export class Pet {
     if (!this.sleeping) return false;
     this.awakeUntil = Date.now() + 60_000;
     this.interrupt([
-      this.wait(0.7, 'lie', '', 'waking up'),
+      this.wait(0.7, 'lie', '', 'wakingUp'),
       this.wait(1.1, 'yawn', '', 'yawning'),
       this.wait(1.3, 'stretch', '', 'stretching'),
-      this.wait(0.8, 'shake', '', 'shaking it off'),
-      this.wait(1.2, 'sit', 'wag', 'awake-ish'),
+      this.wait(0.8, 'shake', '', 'shakingItOff'),
+      this.wait(1.2, 'sit', 'wag', 'awakeIsh'),
     ]);
     return true;
   }
@@ -332,9 +336,9 @@ export class Pet {
     const env = this.env();
     if (this.dozing()) {
       const tired = [
-        this.walkTo(rand(this.W * 0.3, this.W * 0.7), 40, 'getting sleepy'),
+        this.walkTo(rand(this.W * 0.3, this.W * 0.7), 40, 'gettingSleepy'),
         this.wait(1.2, 'yawn', '', 'yawning'),
-        this.wait(1, 'lie', '', 'getting comfy'),
+        this.wait(1, 'lie', '', 'gettingComfy'),
         this.sleep(),
       ];
       return Math.abs(this.x - this.W / 2) < this.W * 0.35 ? tired.slice(1) : tired;
@@ -355,16 +359,16 @@ export class Pet {
       case 'wander':
         return [this.walkTo(spot(), sp), this.wait(rand(1.5, 4), chance(0.3) ? 'stand' : 'sit', wag, 'chilling')];
       case 'idle':
-        return [this.face(chance(0.5) ? 1 : -1), this.wait(rand(2, 5), 'sit', wag, mood === 'side-eye' ? 'judging' : 'on guard')];
+        return [this.face(chance(0.5) ? 1 : -1), this.wait(rand(2, 5), 'sit', wag, mood === 'side-eye' ? 'judging' : 'onGuard')];
       case 'pant':
         return [this.wait(rand(2.5, 4.5), 'pant', 'wag', 'happy')];
       case 'tilt':
-        return [this.wait(0.3, 'sit', wag), this.wait(1.4, 'sit', wag, 'head tilt', { tilt: true }), this.wait(1, 'sit', wag, 'on guard')];
+        return [this.wait(0.3, 'sit', wag), this.wait(1.4, 'sit', wag, 'headTilt', { tilt: true }), this.wait(1, 'sit', wag, 'onGuard')];
       case 'exit': {
         const away = mood === 'sulking' ? rand(5, 9) : rand(1.5, 4);
         return [
-          this.walkTo(chance(0.5) ? -SW : W + SW, sp, 'heading out'),
-          this.wait(away, 'stand', '', 'off somewhere'),
+          this.walkTo(chance(0.5) ? -SW : W + SW, sp, 'headingOut'),
+          this.wait(away, 'stand', '', 'offSomewhere'),
           this.teleport(chance(0.5) ? -SW : W + SW),
           this.walkTo(rand(W * 0.25, W * 0.75), sp, 'back'),
           this.wait(rand(1, 2.5), 'sit', wag, 'chilling'),
@@ -375,44 +379,44 @@ export class Pet {
       case 'chase-tail':
         return this.chaseTail();
       case 'bark':
-        return [this.wait(0.3, 'sit', '', 'alert'), this.bark(Math.ceil(rand(1, 4)), false), this.wait(1.5, 'sit', 'wag', 'on guard')];
+        return [this.wait(0.3, 'sit', '', 'alert'), this.bark(Math.ceil(rand(1, 4)), false), this.wait(1.5, 'sit', 'wag', 'onGuard')];
       case 'sniff':
         return [
-          this.walkTo(spot(), sp * 0.7, 'sniffing around'),
+          this.walkTo(spot(), sp * 0.7, 'sniffingAround'),
           this.wait(rand(1.5, 2.5), 'sniff', 'wag', 'sniffing'),
-          this.walkTo(spot(), sp * 0.7, 'sniffing around'),
-          this.wait(rand(1.5, 2.5), 'sniff', 'wag', 'found something'),
+          this.walkTo(spot(), sp * 0.7, 'sniffingAround'),
+          this.wait(rand(1.5, 2.5), 'sniff', 'wag', 'foundSomething'),
         ];
       case 'dig':
         return [
-          this.walkTo(spot(), sp, 'looking for a spot'),
+          this.walkTo(spot(), sp, 'lookingForASpot'),
           this.wait(0.8, 'sniff', 'wag', 'sniffing'),
           this.wait(rand(1.8, 3), 'dig', 'wag-fast', 'digging'),
-          this.wait(0.8, 'shake', '', 'shaking off dirt'),
-          this.wait(1.2, 'pant', 'wag', 'proud of the hole'),
+          this.wait(0.8, 'shake', '', 'shakingOffDirt'),
+          this.wait(1.2, 'pant', 'wag', 'proudOfTheHole'),
         ];
       case 'ball': {
         if (!this.ball.on) this.ball = { on: true, x: spot(), y: 0, vx: 0, vy: 0, carried: false };
-        const seq: Act[] = [this.wait(0.9, 'bow', 'wag-fast', 'play bow')];
+        const seq: Act[] = [this.wait(0.9, 'bow', 'wag-fast', 'playBow')];
         const kicks = Math.ceil(rand(2, 4));
         for (let i = 0; i < kicks; i++) seq.push(this.chaseBall(false), this.kick());
         seq.push(this.wait(1.5, 'bow', 'wag-fast', 'pleased'));
         return seq;
       }
       case 'rest':
-        return [this.wait(0.6, 'lie', '', 'lying down'), this.wait(rand(4, 9), 'lie', mood === 'sulking' ? 'droop' : 'wag', 'resting')];
+        return [this.wait(0.6, 'lie', '', 'lyingDown'), this.wait(rand(4, 9), 'lie', mood === 'sulking' ? 'droop' : 'wag', 'resting')];
       case 'scratch':
-        return [this.wait(0.3, 'sit', ''), this.wait(1.5, 'scratch', '', 'scratching'), this.wait(0.5, 'shake', '', 'shaking it off'), this.wait(1, 'sit', wag, 'chilling')];
+        return [this.wait(0.3, 'sit', ''), this.wait(1.5, 'scratch', '', 'scratching'), this.wait(0.5, 'shake', '', 'shakingItOff'), this.wait(1, 'sit', wag, 'chilling')];
       case 'yawn':
         return [this.wait(0.3, 'sit', ''), this.wait(1.3, 'yawn', '', 'yawning'), this.wait(1.2, 'sit', wag, 'chilling')];
       case 'stretch':
-        return [this.wait(1.4, 'stretch', '', 'stretching'), this.wait(0.6, 'shake', '', 'shaking it off'), this.wait(1, 'stand', 'wag', 'ready')];
+        return [this.wait(1.4, 'stretch', '', 'stretching'), this.wait(0.6, 'shake', '', 'shakingItOff'), this.wait(1, 'stand', 'wag', 'ready')];
     }
   }
 
   // ---------- yard acts ----------
 
-  private wait(sec: number, anim: Anim, tail: Tail = '', label = 'chilling', opts: { tilt?: boolean; hop?: boolean } = {}): Act {
+  private wait(sec: number, anim: Anim, tail: Tail = '', label: StatusKey = 'chilling', opts: { tilt?: boolean; hop?: boolean } = {}): Act {
     let t = 0;
     return {
       label,
@@ -425,7 +429,7 @@ export class Pet {
     };
   }
 
-  private walkTo(tx: number, speed: number, label = 'wandering'): Act {
+  private walkTo(tx: number, speed: number, label: StatusKey = 'wandering'): Act {
     const fast = speed > 140;
     return {
       label,
@@ -446,15 +450,15 @@ export class Pet {
   }
 
   private face(dir: 1 | -1): Act {
-    return { label: 'looking around', update: () => ((this.facing = dir), true) };
+    return { label: 'lookingAround', update: () => ((this.facing = dir), true) };
   }
 
   private turnAway(): Act {
-    return { label: 'turning away', update: () => ((this.facing = this.x < this.W / 2 ? -1 : 1), true) };
+    return { label: 'turningAway', update: () => ((this.facing = this.x < this.W / 2 ? -1 : 1), true) };
   }
 
   private teleport(x: number): Act {
-    return { label: 'off somewhere', update: () => ((this.x = x), true) };
+    return { label: 'offSomewhere', update: () => ((this.x = x), true) };
   }
 
   private bark(times: number, loud: boolean): Act {
@@ -491,12 +495,12 @@ export class Pet {
   private zoomies(): Act[] {
     const W = this.W;
     return [
-      this.wait(0.6, 'bow', 'wag-fast', 'uh oh'),
-      this.walkTo(W * 0.88, 240, 'ZOOMIES'),
-      this.walkTo(W * 0.12, 260, 'ZOOMIES'),
-      this.walkTo(W * 0.85, 260, 'ZOOMIES'),
-      this.walkTo(W * 0.5, 210, 'ZOOMIES'),
-      this.wait(1.8, 'pant', 'wag-fast', 'catching his breath'),
+      this.wait(0.6, 'bow', 'wag-fast', 'uhOh'),
+      this.walkTo(W * 0.88, 240, 'zoomies'),
+      this.walkTo(W * 0.12, 260, 'zoomies'),
+      this.walkTo(W * 0.85, 260, 'zoomies'),
+      this.walkTo(W * 0.5, 210, 'zoomies'),
+      this.wait(1.8, 'pant', 'wag-fast', 'catchingBreath'),
     ];
   }
 
@@ -505,7 +509,7 @@ export class Pet {
     let flip = 0;
     return [
       {
-        label: 'chasing his tail',
+        label: 'chasingTail',
         enter: () => this.setAnim('run', 'wag-fast', { hop: true }),
         update: (dt) => {
           t += dt;
@@ -520,14 +524,14 @@ export class Pet {
         exit: () => (this.hop = false),
       },
       this.wait(0.8, 'shake', '', 'dizzy'),
-      this.wait(1, 'pant', 'wag', 'worth it'),
+      this.wait(1, 'pant', 'wag', 'worthIt'),
     ];
   }
 
   private watchBall(sec: number, keen: boolean): Act {
     let t = 0;
     return {
-      label: 'eyes on the ball',
+      label: 'eyesOnTheBall',
       enter: () => (keen ? this.setAnim('bow', 'wag-fast') : this.setAnim('sit', 'droop')),
       update: (dt) => {
         this.facing = this.ball.x >= this.x ? 1 : -1;
@@ -538,7 +542,7 @@ export class Pet {
 
   private chaseBall(fetch: boolean): Act {
     return {
-      label: fetch ? 'fetching' : 'playing ball',
+      label: fetch ? 'fetching' : 'playingBall',
       enter: () => this.setAnim('run', 'wag-fast'),
       update: (dt) => {
         const b = this.ball;
@@ -566,7 +570,7 @@ export class Pet {
 
   private kick(): Act {
     return {
-      label: 'playing ball',
+      label: 'playingBall',
       update: () => {
         this.ball.vx = this.facing * rand(140, 260);
         this.ball.vy = rand(120, 260);
@@ -578,9 +582,9 @@ export class Pet {
 
   private bringBack(): Act[] {
     return [
-      this.walkTo(this.W / 2 + rand(-30, 30), 120, 'bringing it back'),
+      this.walkTo(this.W / 2 + rand(-30, 30), 120, 'bringingItBack'),
       {
-        label: 'dropping it',
+        label: 'droppingIt',
         update: () => {
           this.facing = chance(0.5) ? 1 : -1;
           this.ball.carried = false;
@@ -589,9 +593,9 @@ export class Pet {
           return true;
         },
       },
-      this.wait(0.2, 'sit', '', 'good boy'),
+      this.wait(0.2, 'sit', '', 'goodBoy'),
       this.bark(1, false),
-      this.wait(2.2, 'bow', 'wag-fast', 'throw it again'),
+      this.wait(2.2, 'bow', 'wag-fast', 'throwItAgain'),
     ];
   }
 
@@ -715,7 +719,7 @@ export class Pet {
     this.cqueue = acts;
   }
 
-  private cFace(sec: number, head: HeadV, closed: boolean, earsBack: boolean, fmod: FaceMod, label: string): Act {
+  private cFace(sec: number, head: HeadV, closed: boolean, earsBack: boolean, fmod: FaceMod, label: StatusKey): Act {
     let t = 0;
     return {
       label,
@@ -735,7 +739,7 @@ export class Pet {
     const panting = (mood === 'ride-or-die' || mood === 'locked-in') && chance(0.6);
     let t = 0;
     return {
-      label: 'up close',
+      label: 'upClose',
       enter: () => {
         this.eyesClosed = false;
         this.earsBack = mood === 'sulking';
@@ -753,7 +757,7 @@ export class Pet {
     if (this.dozing()) {
       return [
         {
-          label: 'asleep · rub to wake',
+          label: 'asleepRub',
           enter: () => {
             this.head = 'up';
             this.eyesClosed = true;
@@ -763,13 +767,13 @@ export class Pet {
           update: () => !this.dozing(),
         },
         this.cFace(1, 'yawn', true, true, '', 'yawning'),
-        this.cFace(0.5, 'up', false, false, 'shake', 'waking up'),
+        this.cFace(0.5, 'up', false, false, 'shake', 'wakingUp'),
       ];
     }
     const mood = this.env().mood;
     const r = Math.random();
     if (r < 0.15) return [this.cFace(0.5, 'up', false, true, '', 'listening'), this.cIdle(rand(1.5, 3))];
-    if (r < 0.28 && mood !== 'sulking') return [this.cFace(1.2, 'up', false, false, 'tilt', 'head tilt'), this.cIdle(rand(1.5, 3))];
+    if (r < 0.28 && mood !== 'sulking') return [this.cFace(1.2, 'up', false, false, 'tilt', 'headTilt'), this.cIdle(rand(1.5, 3))];
     if (r < 0.36) return [this.cFace(1.1, 'yawn', true, true, '', 'yawning'), this.cIdle(rand(1.5, 3))];
     if (r < 0.42 && mood !== 'sulking') return [this.cBark(1, false), this.cIdle(2)];
     return [this.cIdle(rand(2, 4))];
@@ -802,7 +806,7 @@ export class Pet {
     let chewT = 0;
     return [
       {
-        label: 'TREAT',
+        label: 'treat',
         enter: () => {
           this.treat = { on: true, y: -40, vy: 0 };
           this.head = 'up';
@@ -836,8 +840,8 @@ export class Pet {
           return chewT > 1.8;
         },
       },
-      this.cFace(0.6, 'pant2', true, true, '', 'licking his lips'),
-      this.cFace(1.4, 'pant', false, false, 'tilt', 'more?'),
+      this.cFace(0.6, 'pant2', true, true, '', 'lickingLips'),
+      this.cFace(1.4, 'pant', false, false, 'tilt', 'more'),
       this.cIdle(1),
     ];
   }
@@ -902,11 +906,11 @@ export class Pet {
   private patYard() {
     if (this.wakeIfSleeping()) return;
     if (this.env().mood === 'sulking') {
-      this.interrupt([this.turnAway(), this.wait(1.8, 'lie', 'droop', 'tolerating you')]);
+      this.interrupt([this.turnAway(), this.wait(1.8, 'lie', 'droop', 'tolerating')]);
       return;
     }
     if (this.env().sound) sfx('tick', 0.4);
-    const seq = [this.wait(0.9, 'pant', 'wag-fast', 'getting pets', { hop: true }), this.wait(1.4, 'bow', 'wag-fast', 'happy')];
+    const seq = [this.wait(0.9, 'pant', 'wag-fast', 'gettingPets', { hop: true }), this.wait(1.4, 'bow', 'wag-fast', 'happy')];
     if (chance(0.3)) seq.push(this.bark(1, true));
     if (chance(0.25)) seq.push(...this.chaseTail());
     this.interrupt(seq);
@@ -916,14 +920,14 @@ export class Pet {
     const [mx, my] = this.closeMouthPx;
     const onNose = Math.hypot(x - mx, y - (my - FPX)) < FPX * 3;
     if (this.dozing()) {
-      this.cInterrupt([this.cFace(0.4, 'up', true, true, '', 'still asleep')]);
+      this.cInterrupt([this.cFace(0.4, 'up', true, true, '', 'stillAsleep')]);
       return;
     }
     if (onNose) {
       if (this.env().sound) sfx('tick', 0.6);
-      this.cInterrupt([this.cFace(0.35, 'up', true, true, 'boop', 'BOOP'), this.cFace(0.5, 'up', false, false, 'shake', 'BOOP'), this.cIdle(1.5)]);
+      this.cInterrupt([this.cFace(0.35, 'up', true, true, 'boop', 'boop'), this.cFace(0.5, 'up', false, false, 'shake', 'boop'), this.cIdle(1.5)]);
     } else {
-      this.cInterrupt([this.cFace(1.2, 'up', false, false, 'tilt', 'head tilt'), this.cIdle(1.5)]);
+      this.cInterrupt([this.cFace(1.2, 'up', false, false, 'tilt', 'headTilt'), this.cIdle(1.5)]);
     }
   }
 
@@ -1004,16 +1008,16 @@ export class Pet {
     // ---- labels
     const label =
       this.view === 'close'
-        ? performance.now() < this.rubUntil ? 'getting pets' : this.cact?.label ?? 'up close'
-        : this.sleeping ? 'asleep · tap him' : this.act?.label ?? '';
-    const text = label.toUpperCase();
+        ? performance.now() < this.rubUntil ? 'gettingPets' : this.cact?.label ?? 'upClose'
+        : this.sleeping ? 'asleepTap' : this.act?.label ?? '';
+    const text = label ? tx(`dog.status.${label}`).toLocaleUpperCase() : '';
     if (els.status.textContent !== text) els.status.textContent = text;
     if (els.petBtn) {
-      const t = this.view === 'close' ? 'YARD' : 'PET';
+      const t = tx(this.view === 'close' ? 'dog.buttons.yard' : 'dog.buttons.pet');
       if (els.petBtn.textContent !== t) els.petBtn.textContent = t;
     }
     if (els.treatBtn) {
-      const t = `TREAT ×${env.treats}`;
+      const t = tx('dog.buttons.treat', { n: env.treats });
       if (els.treatBtn.textContent !== t) els.treatBtn.textContent = t;
     }
   }

@@ -1,4 +1,5 @@
 import type { FxLevel } from './types';
+import { list, tx } from './i18n';
 
 /* ============================================================
    Explosions. Canvas overlay, particles, word pops, shockwaves.
@@ -188,15 +189,6 @@ function shake(hard = false) {
   setTimeout(() => el.classList.remove('shake', 'shake-hard'), 600);
 }
 
-const ITEM_WORDS = [
-  'BOOM BITCH', 'CRUSHED', 'YES BITCH', 'HELL YES', 'FUCK YEAH', 'BADASS', 'SLAYED',
-  'DAMN RIGHT', 'NEXT, BITCH', 'FUCK OFF, TASK', 'SHE ATE', 'GET FUCKED', 'BYE BITCH',
-];
-const BIG_WORDS = [
-  'DESTROYED', 'BADASS BEHAVIOR', 'BOW DOWN', 'THAT BITCH DID IT', 'OBLITERATED', 'HOLY SHIT',
-  'BOSS ASS BITCH', 'UNFUCKWITHABLE', 'FLAWLESS AS FUCK',
-];
-
 export interface FxOpts { level: FxLevel; sound: boolean; haptics: boolean }
 
 /** One checklist item checked. */
@@ -211,7 +203,7 @@ export function itemFx(x: number, y: number, o: FxOpts) {
   }
   spawn(x, y, 70, 650);
   ring(x, y, 420, 5);
-  const pool = ITEM_WORDS;
+  const pool = list('boomWords');
   word(pickOne(pool), Math.min(Math.max(x + 60, 90), innerWidth - 90), y - 30, 40, 0.8);
   shake();
   if (o.sound) sfx('pop');
@@ -225,7 +217,7 @@ export function bigFx(o: FxOpts, title?: string) {
   const h = innerHeight;
   if (o.level === 'classy') {
     for (let i = 0; i < 4; i++) setTimeout(() => spawn(rand(w * 0.15, w * 0.85), rand(h * 0.15, h * 0.4), 40, 380), i * 140);
-    word(title ?? 'DONE.', w / 2, h * 0.38, 64, 1.4);
+    word(title ?? tx('celebrate.classyBoom'), w / 2, h * 0.38, 64, 1.4);
     if (o.sound) sfx('chime');
     buzz(o, [20, 40, 20]);
     return;
@@ -243,7 +235,7 @@ export function bigFx(o: FxOpts, title?: string) {
       if (i === 3) shake(true);
     }, i * 150);
   }
-  const pool = BIG_WORDS;
+  const pool = list('bigWords');
   word(title ?? pickOne(pool), w / 2, h * 0.4, 84, 1.8);
   buzz(o, [60, 40, 120, 40, 200]);
 }

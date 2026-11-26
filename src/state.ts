@@ -1,6 +1,7 @@
 import { addDays, daysInMonth, monthOf, today, weekOf } from './dates';
 import type { AppState, Branch, Learning, Method, Mode, RoutineItem, Skill } from './types';
 import { MODES } from './types';
+import { list, tx } from './i18n';
 
 export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, level: 50, mastered: 300 };
 export const TREATS = { routine: 1, learning: 1, solidify: 2, mastered: 3 };
@@ -8,30 +9,14 @@ export const LOY = { item: 1, routine: 4, boItem: 5, learning: 4, solidify: 8, m
 
 export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
-const item = (label: string, bo = false): RoutineItem => ({ id: uid(), label, ...(bo ? { bo: true } : {}) });
-
-export function defaultRoutines(): Record<Mode, RoutineItem[]> {
+/** Starter routines come from src/text/ui.ts. A task mentioning {dog} is a dog task. */
+export function defaultRoutines(dogName = tx('defaults.dogName')): Record<Mode, RoutineItem[]> {
+  const make = (labels: string[]) =>
+    labels.map((l): RoutineItem => ({ id: uid(), label: l.replaceAll('{dog}', dogName), ...(l.includes('{dog}') ? { bo: true } : {}) }));
   return {
-    morning: [
-      item('Water before coffee'),
-      item('Make the bed'),
-      item('Walk Bo', true),
-      item('Move for 10 minutes'),
-      item("Look at today's plan"),
-    ],
-    afternoon: [
-      item('Real lunch, not snacks'),
-      item('Refill water'),
-      item('Get outside for 10'),
-      item('Reset one space'),
-    ],
-    night: [
-      item("Train Bo", true),
-      item("Log today's learning"),
-      item('Skincare'),
-      item('Phone on the charger, away from bed'),
-      item('Lights out on time'),
-    ],
+    morning: make(list('defaults.routines.morning')),
+    afternoon: make(list('defaults.routines.afternoon')),
+    night: make(list('defaults.routines.night')),
   };
 }
 
@@ -39,7 +24,7 @@ export function defaultState(now = new Date()): AppState {
   const t = today(now);
   return {
     version: 1,
-    profile: { name: 'Sam', dogName: 'Bo', buddyName: '', createdAt: t },
+    profile: { name: tx('defaults.name'), dogName: tx('defaults.dogName'), buddyName: '', createdAt: t },
     routines: defaultRoutines(),
     days: {},
     learnings: [],
@@ -168,7 +153,9 @@ export function startSkill(s: AppState, name: string, branch: Branch, day = toda
 }
 
 /** Progress steps for a skill. The last one means mastered. */
-export const SKILL_LEVELS = ['Day one', 'Getting it', 'Decent', 'Solid', 'Nailed it'];
+/** Ids of a skill's steps; their names live in src/text/ui.ts (skillLevels). */
+export const SKILL_LEVELS = ['dayOne', 'gettingIt', 'decent', 'solid', 'nailedIt'] as const;
+export type SkillLevelId = (typeof SKILL_LEVELS)[number];
 export const MAX_LEVEL = SKILL_LEVELS.length - 1;
 
 export const skillLevel = (sk: Skill) => (sk.status === 'mastered' ? MAX_LEVEL : Math.min(sk.level ?? 0, MAX_LEVEL));
@@ -218,7 +205,7 @@ export function skillStats(s: AppState, sk: Skill) {
   const solid = s.solidifies.filter((x) => x.skillId === sk.id).length;
   const level = skillLevel(sk);
   const pct = Math.round((level / MAX_LEVEL) * 100);
-  return { learnings, days, solid, level, levelName: SKILL_LEVELS[level], pct, monthDays: daysInMonth(sk.month) };
+  return { learnings, days, solid, level, levelId: SKILL_LEVELS[level], pct, monthDays: daysInMonth(sk.month) };
 }
 
 // ---------- activity, streaks, Bo decay ----------

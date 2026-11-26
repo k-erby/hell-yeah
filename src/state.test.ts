@@ -124,7 +124,7 @@ describe('skill levels', () => {
     const base = s.xp;
     setSkillLevel(s, sk.id, 2, D);
     expect(s.xp - base).toBe(XP.level * 2);
-    expect(skillStats(s, sk).levelName).toBe('Decent');
+    expect(skillStats(s, sk).levelId).toBe('decent');
     setSkillLevel(s, sk.id, 1, D); // honest correction: no XP lost
     setSkillLevel(s, sk.id, 2, D); // ...and none re-earned
     expect(s.xp - base).toBe(XP.level * 2);

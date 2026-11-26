@@ -1,3 +1,4 @@
+import { getLocale } from './i18n';
 import type { Mode } from './types';
 
 export const pad = (n: number) => String(n).padStart(2, '0');
@@ -57,13 +58,13 @@ export function modeAt(now = new Date()): Mode {
 }
 
 export const prettyDay = (k: string) =>
-  parseDay(k).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  parseDay(k).toLocaleDateString(getLocale(), { weekday: 'long', month: 'short', day: 'numeric' });
 
 export const shortDay = (k: string) =>
-  parseDay(k).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  parseDay(k).toLocaleDateString(getLocale(), { weekday: 'short', month: 'short', day: 'numeric' });
 
 export const prettyMonth = (mk: string) =>
-  parseDay(`${mk}-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  parseDay(`${mk}-01`).toLocaleDateString(getLocale(), { month: 'long', year: 'numeric' });
 
 export const monthName = (mk: string) =>
-  parseDay(`${mk}-01`).toLocaleDateString(undefined, { month: 'long' });
+  parseDay(`${mk}-01`).toLocaleDateString(getLocale(), { month: 'long' });

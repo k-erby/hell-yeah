@@ -1,4 +1,5 @@
 import { test as base, expect, type Page } from '@playwright/test';
+import { tx } from '../src/i18n';
 
 /** A Wednesday morning, Vancouver time. Fixed so week/month/mode logic is predictable. */
 export const NOW = new Date('2026-11-25T10:00:00-08:00');
@@ -38,7 +39,7 @@ export class App {
 
   /** Tap a chip (branch / skill / method). The real radio is visually hidden, so tap its label. */
   async chip(scope: ReturnType<Page['locator']>, label: string) {
-    await scope.locator('label.chip-radio', { hasText: new RegExp(`^${label}$`) }).click();
+    await scope.locator('label.chip-radio', { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).click();
   }
 
   // ---- Learn tab
@@ -46,7 +47,7 @@ export class App {
   get dailyForm() { return this.page.locator('form[data-form="learning"]'); }
   get dailyCard() { return this.page.locator('section.card', { has: this.dailyForm }); }
   get weeklyForm() { return this.page.locator('form[data-form="solidify"]'); }
-  get weeklyCard() { return this.page.locator('section.card', { has: this.page.locator('.eyebrow', { hasText: 'Every week' }) }); }
+  get weeklyCard() { return this.page.locator('section.card', { has: this.page.locator('.eyebrow', { hasText: tx('learn.weekly.eyebrow') }) }); }
 
   // ---- Tree tab
   get tree() { return this.page.locator('svg.tree'); }
@@ -60,5 +61,6 @@ export class App {
     await expect(this.detail.locator('h2')).toHaveText(skill);
   }
   get detail() { return this.page.locator('section.tree-card + section.card'); }
-  stat(label: string) { return this.detail.locator('.mini-stats > div', { has: this.page.locator('span', { hasText: label }) }).locator('b'); }
+  /** A number in the skill detail's stats row, found by its index (0 = progress, 1 = learned, 2 = locked in). */
+  stat(i: number) { return this.detail.locator('.mini-stats > div').nth(i).locator('b'); }
 }
