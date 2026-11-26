@@ -1,5 +1,7 @@
 # The "Drop an idea" box in the app (Settings tab) opens this form with the
-# idea already filled in. Also shows up under Issues → New issue.
+# idea already filled in under the first heading. Also shows up under
+# Issues → New issue. The app's version of these headings is
+# `settings.ideas.issueBody` in src/text/ui.ts; keep them matching.
 name: 💡 Idea
 description: Something the app should do, change, or stop doing.
 labels: [idea]
@@ -7,12 +9,16 @@ body:
   - type: textarea
     id: idea
     attributes:
-      label: The idea
-      placeholder: What should the app do?
+      label: Your idea
+      description: Write under each heading.
+      value: |
+        ### What should the app do?
+
+
+        ### Why do you want it to do that?
+
+
+        ### Anything else?
+
     validations:
       required: true
-  - type: textarea
-    id: why
-    attributes:
-      label: Anything else? (optional)
-      placeholder: Why it'd be good, a screenshot, a link…

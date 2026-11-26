@@ -252,6 +252,8 @@ export const ui = {
       hint: 'Opens GitHub with your idea filled in. Tap <b>Create</b> and it’s in.',
       /** The title of the GitHub issue. */
       issueTitle: '💡 {idea}',
+      /** The GitHub issue's description. "\n" starts a new line. Keep these headings matching .github/ISSUE_TEMPLATE/idea.yml. */
+      issueBody: '### What should the app do?\n{idea}\n\n### Why do you want it to do that?\n\n\n### Anything else?\n',
     },
     footer: 'Hell Yeah · v0.1',
   },
