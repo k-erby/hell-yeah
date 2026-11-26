@@ -43,6 +43,8 @@ export interface Skill {
   branch: Branch;
   month: string; // YYYY-MM
   status: 'active' | 'mastered' | 'dropped';
+  /** Self-rated progress: 0 Day one … 4 Nailed it (= mastered). */
+  level?: number;
   doneAt?: string;
 }
 

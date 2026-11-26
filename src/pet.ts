@@ -959,7 +959,7 @@ export class Pet {
     }
     els.pet.style.transform = `translate3d(${(this.x - SW / 2).toFixed(1)}px, ${(-this.hopY).toFixed(1)}px, 0)`;
     els.sprite.style.transform = `scaleX(${this.facing})`;
-    const cls = `pet anim-${this.anim} tail-${this.tail || 'none'}${this.tilt ? ' tilt' : ''}${this.sleeping ? ' sleeping' : ''}${this.barking > 0 ? ' barking' : ''}${env.stage >= 5 ? ' legend' : ''}`;
+    const cls = `pet anim-${this.anim} tail-${this.tail || 'none'}${this.tilt ? ' tilt' : ''}${this.sleeping ? ' sleeping' : ''}${this.barking > 0 ? ' barking' : ''}`;
     if (els.pet.className !== cls) els.pet.className = cls;
     els.bark.style.left = `${(this.mouth[0] + 1) * PX}px`;
     els.bark.style.top = `${(this.mouth[1] - 4) * PX}px`;
@@ -995,7 +995,7 @@ export class Pet {
         this.closeMouthPx = [left + (fb.mouth[0] - c.x + 0.5) * FPX, top + (fb.mouth[1] - c.y) * FPX];
       }
       const asleep = this.dozing() && this.cact?.label.startsWith('asleep');
-      const ccls = `close fmod-${this.fmod || 'none'}${asleep ? ' sleeping' : ''}${env.stage >= 5 ? ' legend' : ''}`;
+      const ccls = `close fmod-${this.fmod || 'none'}${asleep ? ' sleeping' : ''}`;
       if (els.close.className !== ccls) els.close.className = ccls;
       els.treat.hidden = !this.treat.on;
       if (this.treat.on) els.treat.style.transform = `translate3d(${(this.closeMouthPx[0] - 17).toFixed(1)}px, ${this.treat.y.toFixed(1)}px, 0)`;

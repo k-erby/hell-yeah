@@ -267,6 +267,35 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .stack .btn, .card > .btn { width: 100%; }
 .card > .btn + .btn { margin-top: 8px; }
 
+/* ---------- skill progress track ---------- */
+.lvl-track {
+  position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin: 14px 0 16px;
+}
+.lvl-track::before, .lvl-track::after {
+  content: ''; position: absolute; top: 11px; left: 10%; height: 3px; border-radius: 3px;
+}
+.lvl-track::before { right: 10%; background: var(--surface2); }
+.lvl-track::after { width: calc(80% * var(--f, 0)); background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 0 10px var(--glow); transition: width .5s cubic-bezier(.2,1.2,.3,1); }
+.lvl {
+  position: relative; z-index: 1; display: grid; justify-items: center; gap: 6px;
+  padding: 0 2px; border: 0; background: none; color: var(--muted);
+}
+.lvl-dot {
+  width: 25px; height: 25px; border-radius: 50%; border: 3px solid var(--surface2); background: var(--bg);
+  transition: background .2s, border-color .2s, transform .2s;
+}
+.lvl.on .lvl-dot { border-color: var(--accent); background: var(--accent); }
+.lvl.cur .lvl-dot { background: var(--accent2); box-shadow: 0 0 0 4px var(--glow); transform: scale(1.1); }
+.lvl-name { font-size: 11px; font-weight: 700; line-height: 1.15; text-align: center; }
+.lvl.on .lvl-name { color: var(--text); }
+.lvl.cur .lvl-name { color: var(--accent2); }
+.lvl:active .lvl-dot { transform: scale(.9); }
+
+.fuel { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.fuel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.fuel .history li { padding: 8px 0; font-size: 14px; }
+.drop-link { display: block; margin: 14px auto 0; color: var(--muted); font-weight: 600; }
+
 /* ---------- entries ---------- */
 .entry { padding: 12px 14px; border-radius: 12px; background: rgba(0,0,0,.28); border-left: 3px solid var(--accent); margin-bottom: 10px; font-size: 15px; }
 .entry-tag { display: block; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
@@ -299,7 +328,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .trunk { fill: none; stroke: url(#gold); stroke-width: 14; stroke-linecap: round; }
 .root { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; opacity: .55; }
 .branch { fill: none; stroke: var(--muted); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 2 7; opacity: .45; }
-.branch.grown { stroke: url(#gold); stroke-width: 7; stroke-dasharray: none; opacity: 1; }
+.branch.grown { stroke: url(#gold-b); stroke-width: 7; stroke-dasharray: none; opacity: 1; }
 .branch-label { font: 13px Anton, Impact, sans-serif; letter-spacing: .14em; fill: var(--muted); opacity: .6; }
 .branch-label.grown { fill: var(--accent2); opacity: 1; }
 .bud { fill: var(--accent); opacity: .7; }
@@ -372,7 +401,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .pet.anim-run::before { opacity: .5; scale: .8 1; }
 .pet-sprite { position: absolute; inset: 0; transform-origin: 50% 100%; }
 .pet .bo { display: block; overflow: visible; }
-.pet.legend .pet-sprite { filter: drop-shadow(0 0 4px #fff7d0) drop-shadow(0 0 10px rgba(255,240,170,.8)); }
 .stage-0 .pet .bo { scale: .8; transform-origin: 50% 100%; }
 
 /* Tail wags, legs, panting etc. are real sprite frames now; CSS adds the squash and tilt. */
@@ -419,7 +447,6 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .face { position: absolute; left: 50%; bottom: 0; translate: -50% 0; overflow: visible; transform-origin: 50% 100%; }
 .close.fmod-shake .face { animation: shake-off .09s steps(2) 6; }
 .close.sleeping .face { animation: breathe-sleep 2.6s ease-in-out infinite; }
-.close.legend .face { filter: drop-shadow(0 0 4px #fff7d0) drop-shadow(0 0 12px rgba(255,240,170,.8)); }
 .close-zzz { left: 58%; top: 10px; }
 .close-zzz i { font-size: 22px; }
 .close-zzz i:nth-child(2) { font-size: 17px; }
@@ -537,3 +564,11 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 @media (min-width: 541px) {
   #nav { border: 1px solid var(--line); border-bottom: 0; border-radius: 20px 20px 0 0; }
 }
+
+.field-label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.field-label .muted { text-transform: none; letter-spacing: 0; }
+
+/* Tree detail: learnings you locked in */
+.lock-in { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.28); border-left: 3px solid var(--accent); font-size: 14px; }
+.from-learning { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+.from-learning small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }

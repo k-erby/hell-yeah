@@ -2,22 +2,23 @@ import type { Mood } from './types';
 
 export const RANKS = [
   { name: 'Rookie', xp: 0 },
-  { name: 'Contender', xp: 300 },
-  { name: 'Boss', xp: 1000 },
-  { name: 'Heavy Hitter', xp: 2500 },
-  { name: 'Icon', xp: 5000 },
-  { name: 'Queen', xp: 9000 },
-  { name: 'Untouchable', xp: 15000 },
-  { name: 'Legend', xp: 25000 },
+  // A full day of routines + a learning is ~150-200 XP, so roughly:
+  { name: 'Contender', xp: 1_000 }, //    ~1 week
+  { name: 'Boss', xp: 3_500 }, //         ~3 weeks
+  { name: 'Heavy Hitter', xp: 8_000 }, // ~1.5 months
+  { name: 'Icon', xp: 16_000 }, //        ~3 months
+  { name: 'Queen', xp: 28_000 }, //       ~5 months
+  { name: 'Untouchable', xp: 45_000 }, // ~8 months
+  { name: 'Legend', xp: 70_000 }, //      ~1 year
 ];
 
 export const BO_STAGES = [
   { name: 'Pup', bond: 0, perk: 'Fresh recruit. Chews things.' },
-  { name: 'Recruit', bond: 80, perk: 'Earned the gold collar.' },
+  { name: 'Recruit', bond: 80, perk: 'Knows your schedule better than you do.' },
   { name: 'Partner', bond: 300, perk: 'Fully grown. Fully loyal.' },
-  { name: 'K9 Unit', bond: 750, perk: 'Gold chain unlocked.' },
-  { name: 'Alpha', bond: 1500, perk: 'Shades on. Woof woof.' },
-  { name: 'Legend', bond: 2800, perk: 'Glows. Literally.' },
+  { name: 'K9 Unit', bond: 750, perk: 'Will die for you. Would prefer a treat.' },
+  { name: 'Alpha', bond: 1500, perk: 'Runs this house. Lets you think you do.' },
+  { name: 'Legend', bond: 2800, perk: 'Ride or die, for real.' },
 ];
 
 function ladder<T extends { name: string }>(list: T[], value: number, key: (t: T) => number) {

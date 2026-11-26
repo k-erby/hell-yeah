@@ -1,6 +1,6 @@
 import { prettyMonth, shortDay } from '../dates';
 import { skillStats } from '../state';
-import type { AppState, Branch, Skill } from '../types';
+import type { AppState, Branch, Skill, Solidify } from '../types';
 import { BRANCHES } from '../types';
 import { BRANCH_META, esc, METHOD_META, plural, type UI } from './common';
 
@@ -73,6 +73,8 @@ export function treeView(s: AppState, ui: UI): string {
     <svg class="tree" viewBox="0 0 360 470" role="img" aria-label="Skill tree">
       <defs>
         <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent2)"/><stop offset="1" style="stop-color:var(--accent)"/></linearGradient>
+        <!-- Branches use canvas coordinates: a bounding-box gradient on a perfectly straight path (CRAFT) has zero width and renders nothing. -->
+        <linearGradient id="gold-b" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="300"><stop offset="0" style="stop-color:var(--accent2)"/><stop offset="1" style="stop-color:var(--accent)"/></linearGradient>
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
       ${roots}${trunk}${branches}${leaves}${nodes}
@@ -124,16 +126,34 @@ function detail(s: AppState, ui: UI): string {
   if (sk) {
     const st = skillStats(s, sk);
     const solids = s.solidifies.filter((x) => x.skillId === sk.id);
+    // Lock-ins that point at one of this skill's learnings get folded into that learning.
+    const lockFor = new Map(solids.filter((x) => x.learningId).map((x) => [x.learningId!, x]));
+    const mine = new Set(st.learnings.map((l) => l.id));
+    const loose = solids.filter((x) => !x.learningId || !mine.has(x.learningId));
+    const recent = [...st.learnings].reverse();
+    const shown = recent.filter((l, i) => i < 10 || lockFor.has(l.id));
+    const lockLine = (x: Solidify) => `<div class="lock-in"><span class="entry-tag">Locked in · ${METHOD_META[x.method]}</span>${esc(x.text)}</div>`;
+    const looseBlocks = loose
+      .map((x) => {
+        const l = x.learningId ? s.learnings.find((y) => y.id === x.learningId) : undefined;
+        return `<div class="entry"><span class="entry-tag">Locked in · ${METHOD_META[x.method]}</span>${esc(x.text)}${l ? `<div class="from-learning"><small>${shortDay(l.date)}</small>${esc(l.text)}</div>` : ''}</div>`;
+      })
+      .join('');
     return `<section class="card">
       <div class="card-head"><div><div class="eyebrow">${BRANCH_META[sk.branch].label} · ${prettyMonth(sk.month)}</div><h2 class="display-sm">${esc(sk.name)}</h2></div>
-        <span class="badge ${sk.status === 'mastered' ? 'ok' : ''}">${sk.status === 'mastered' ? 'Mastered' : `${st.pct}%`}</span></div>
+        <span class="badge ${sk.status === 'mastered' ? 'ok' : ''}">${sk.status === 'mastered' ? 'Mastered' : st.levelName}</span></div>
       <div class="mini-stats">
-        <div><b>${st.days}</b><span>days fed</span></div>
+        <div><b>${st.levelName}</b><span>progress</span></div>
+        <div><b>${st.learnings.length}</b><span>things learned</span></div>
         <div><b>${st.solid}</b><span>locked in</span></div>
-        <div><b>${st.learnings.length}</b><span>leaves</span></div>
       </div>
-      ${solids.map((x) => `<div class="entry"><span class="entry-tag">${METHOD_META[x.method]}</span>${esc(x.text)}</div>`).join('')}
-      <ul class="history">${[...st.learnings].reverse().slice(0, 10).map((l) => `<li><div><small>${shortDay(l.date)}</small>${esc(l.text)}</div></li>`).join('')}</ul>
+      ${looseBlocks}
+      <ul class="history">${shown
+        .map((l) => {
+          const x = lockFor.get(l.id);
+          return `<li><div><small>${shortDay(l.date)}</small>${esc(l.text)}${x ? lockLine(x) : ''}</div></li>`;
+        })
+        .join('')}</ul>
       <button class="btn ghost small" data-action="skill" data-id="">Close</button>
     </section>`;
   }

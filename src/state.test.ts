@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addDays, today, weekOf, weekDays } from './dates';
 import {
   addLearning, addSolidify, bestStreak, defaultState, finishSkill, isRoutineDone,
-  feedTreat, LOY, normalize, TREATS, settle, skillStats, startSkill, streak, toggleItem, XP,
+  feedTreat, LOY, MAX_LEVEL, normalize, setSkillLevel, TREATS, settle, skillStats, startSkill, streak, toggleItem, XP,
 } from './state';
 
 const D = '2026-11-25'; // a Wednesday
@@ -62,9 +62,11 @@ describe('learning loop', () => {
     const st = skillStats(s, sk);
     expect(st.days).toBe(1);
     expect(st.solid).toBe(2);
+    const xpBefore = s.xp;
     finishSkill(s, sk.id, 'mastered', D);
     expect(skillStats(s, sk).pct).toBe(100);
-    expect(s.xp).toBe(XP.skillStart + XP.learning + XP.solidify + XP.mastered);
+    // Jumping to mastered pays out every remaining step on the way.
+    expect(s.xp - xpBefore).toBe(XP.level * (MAX_LEVEL - 1) + XP.mastered);
   });
 });
 
@@ -112,5 +114,33 @@ describe('treats', () => {
     while (feedTreat(s));
     expect(s.bo.treats).toBe(0);
     expect(feedTreat(s)).toBe(false);
+  });
+});
+
+describe('skill levels', () => {
+  it('pays each step once, and the top step masters it', () => {
+    const s = defaultState();
+    const sk = startSkill(s, 'Spanish', 'mind', D);
+    const base = s.xp;
+    setSkillLevel(s, sk.id, 2, D);
+    expect(s.xp - base).toBe(XP.level * 2);
+    expect(skillStats(s, sk).levelName).toBe('Decent');
+    setSkillLevel(s, sk.id, 1, D); // honest correction: no XP lost
+    setSkillLevel(s, sk.id, 2, D); // ...and none re-earned
+    expect(s.xp - base).toBe(XP.level * 2);
+    setSkillLevel(s, sk.id, MAX_LEVEL, D);
+    expect(sk.status).toBe('mastered');
+    expect(skillStats(s, sk).pct).toBe(100);
+    setSkillLevel(s, sk.id, 3, D); // un-master
+    expect(sk.status).toBe('active');
+  });
+
+  it('lock-ins can be tied to any skill, or none', () => {
+    const s = defaultState();
+    const sk = startSkill(s, 'Spanish', 'mind', D);
+    addSolidify(s, 'untied', 'taught', undefined, D, null);
+    expect(skillStats(s, sk).solid).toBe(0);
+    addSolidify(s, 'tied', 'taught', undefined, D, sk.id);
+    expect(skillStats(s, sk).solid).toBe(1);
   });
 });

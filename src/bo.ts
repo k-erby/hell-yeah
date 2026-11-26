@@ -6,7 +6,7 @@ import type { Mood } from './types';
 
    Palette: t tan · d dark tan · l light tan · k saddle · g saddle grey
             b far-side leg · n black · p inner ear · r tongue · w eye shine
-            c gold (collar/chain)
+            c gold (unused for now)
    Everything faces right on a 48x32 canvas, feet on row 31.
    ============================================================ */
 
@@ -95,8 +95,6 @@ const HEAD_PATCH: Record<string, Record<number, string>> = {
   tilt: { 0: '....d.......', 1: '...dd.......', 2: '...dpd......' },
 };
 const HEAD_MOUTH: Pt = [11, 7]; // nose tip / where a ball gets carried
-const HEAD_COLLAR: Pt[] = [[2, 8], [3, 8], [4, 8], [5, 8], [6, 8]];
-const HEAD_CHAIN: Pt[] = [[3, 9], [4, 10], [5, 9]];
 
 // ---------- frame specs ----------
 
@@ -154,7 +152,8 @@ function tailRows(t: TailV): { part: Part; rows: string[] } {
   }
 }
 
-export function build(spec: Spec, stage: number, mood: Mood): Built {
+/** `_stage` is kept for later (accessories per animal); nothing is drawn from it yet. */
+export function build(spec: Spec, _stage: number, mood: Mood): Built {
   const Ly = { far: blank(), tail: blank(), body: blank(), near: blank(), head: blank() };
   const dy = spec.dy ?? 0;
   let head: Pt; // top-left of the head
@@ -205,19 +204,6 @@ export function build(spec: Spec, stage: number, mood: Mood): Built {
   draw(Ly.head, rows, hx, hy);
   const G = (p: Pt): Pt => [hx + p[0], hy + p[1]];
 
-  const paint = (pts: Pt[], c: string) => {
-    for (const p of pts) {
-      const [X, Y] = G(p);
-      for (const layer of [Ly.head, Ly.body]) {
-        if (layer[Y]?.[X] && layer[Y][X] !== '.' && layer[Y][X] !== 'r') {
-          layer[Y][X] = c;
-          break;
-        }
-      }
-    }
-  };
-  if (stage >= 1) paint(HEAD_COLLAR, 'c');
-  if (stage >= 3) paint(HEAD_CHAIN, 'c');
 
   // Eyes
   let eye: Pt | null = null;
@@ -229,10 +215,7 @@ export function build(spec: Spec, stage: number, mood: Mood): Built {
   if (eye) {
     const [wx, wy] = eye;
     const g = Ly.head;
-    if (stage >= 4) {
-      for (let x = wx - 2; x <= wx + 2; x++) for (const y of [wy - 1, wy]) if (g[y][x] !== '.') g[y][x] = 'n';
-      g[wy - 1][wx - 1] = 'w';
-    } else if (closed) {
+    if (closed) {
       g[wy - 1][wx] = 't';
       g[wy - 1][wx + 1] = 't';
       g[wy][wx - 1] = g[wy][wx] = g[wy][wx + 1] = 'n';
@@ -244,7 +227,7 @@ export function build(spec: Spec, stage: number, mood: Mood): Built {
     }
   }
 
-  return { layers: Ly, eye, mouth: G(HEAD_MOUTH), closedEyes: closed || stage >= 4 };
+  return { layers: Ly, eye, mouth: G(HEAD_MOUTH), closedEyes: closed };
 }
 
 function rects(g: Layer): string {

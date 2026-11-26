@@ -2,7 +2,7 @@ import { addDays, daysInMonth, monthOf, today, weekOf } from './dates';
 import type { AppState, Branch, Learning, Method, Mode, RoutineItem, Skill } from './types';
 import { MODES } from './types';
 
-export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, mastered: 300 };
+export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, level: 50, mastered: 300 };
 export const TREATS = { routine: 1, learning: 1, solidify: 2, mastered: 3 };
 export const LOY = { item: 1, routine: 4, boItem: 5, learning: 4, solidify: 8, mastered: 15, decay: 15 };
 
@@ -133,10 +133,14 @@ export function deleteLearning(s: AppState, id: string) {
   s.learnings = s.learnings.filter((l) => l.id !== id);
 }
 
-export function addSolidify(s: AppState, text: string, method: Method, learningId?: string, day = today()) {
+/**
+ * `skill`: a skill id to tie the lock-in to, `null` for none, or leave it out to
+ * use the picked learning's skill (or this month's skill).
+ */
+export function addSolidify(s: AppState, text: string, method: Method, learningId?: string, day = today(), skill?: string | null) {
   const week = weekOf(day);
   const learning = learningId ? s.learnings.find((l) => l.id === learningId) : undefined;
-  const skillId = learning?.skillId ?? currentSkill(s, day)?.id;
+  const skillId = skill === undefined ? (learning?.skillId ?? currentSkill(s, day)?.id) : skill || undefined;
   s.solidifies.push({
     id: uid(),
     week,
@@ -163,13 +167,45 @@ export function startSkill(s: AppState, name: string, branch: Branch, day = toda
   return sk;
 }
 
+/** Progress steps for a skill. The last one means mastered. */
+export const SKILL_LEVELS = ['Day one', 'Getting it', 'Decent', 'Solid', 'Nailed it'];
+export const MAX_LEVEL = SKILL_LEVELS.length - 1;
+
+export const skillLevel = (sk: Skill) => (sk.status === 'mastered' ? MAX_LEVEL : Math.min(sk.level ?? 0, MAX_LEVEL));
+
+/**
+ * Set how far along a skill is. Each step pays out once (going down and back up
+ * doesn't farm XP). Reaching the top step masters the skill.
+ */
+export function setSkillLevel(s: AppState, id: string, level: number, day = today()) {
+  const sk = s.skills.find((k) => k.id === id);
+  if (!sk || sk.status === 'dropped') return;
+  const lvl = Math.max(0, Math.min(MAX_LEVEL, Math.round(level)));
+  for (let n = 1; n <= lvl; n++) {
+    if (n === MAX_LEVEL) {
+      if (award(s, `mastered:${id}`, XP.mastered, LOY.mastered)) s.bo.treats += TREATS.mastered;
+    } else award(s, `level:${id}:${n}`, XP.level, LOY.item);
+  }
+  sk.level = lvl;
+  if (lvl === MAX_LEVEL) {
+    sk.status = 'mastered';
+    sk.doneAt = day;
+  } else if (sk.status === 'mastered') {
+    sk.status = 'active';
+    delete sk.doneAt;
+  }
+}
+
 export function finishSkill(s: AppState, id: string, status: 'mastered' | 'dropped', day = today()) {
+  if (status === 'mastered') return setSkillLevel(s, id, MAX_LEVEL, day);
   const sk = s.skills.find((k) => k.id === id);
   if (!sk) return;
-  sk.status = status;
+  sk.status = 'dropped';
   sk.doneAt = day;
-  if (status === 'mastered' && award(s, `mastered:${id}`, XP.mastered, LOY.mastered)) s.bo.treats += TREATS.mastered;
 }
+
+/** Skills you can still feed: anything not mastered or dropped, newest first. */
+export const activeSkills = (s: AppState) => s.skills.filter((k) => k.status === 'active').sort((a, b) => b.month.localeCompare(a.month));
 
 export function currentSkill(s: AppState, day = today()): Skill | undefined {
   const m = monthOf(day);
@@ -180,11 +216,9 @@ export function skillStats(s: AppState, sk: Skill) {
   const learnings = s.learnings.filter((l) => l.skillId === sk.id);
   const days = new Set(learnings.map((l) => l.date)).size;
   const solid = s.solidifies.filter((x) => x.skillId === sk.id).length;
-  const pct =
-    sk.status === 'mastered'
-      ? 100
-      : Math.round((Math.min(days, 20) / 20) * 60 + (Math.min(solid, 4) / 4) * 40);
-  return { learnings, days, solid, pct, monthDays: daysInMonth(sk.month) };
+  const level = skillLevel(sk);
+  const pct = Math.round((level / MAX_LEVEL) * 100);
+  return { learnings, days, solid, level, levelName: SKILL_LEVELS[level], pct, monthDays: daysInMonth(sk.month) };
 }
 
 // ---------- activity, streaks, Bo decay ----------

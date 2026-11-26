@@ -1,5 +1,5 @@
 import { monthName, monthOf, prettyMonth, shortDay, today, weekDays, weekOf } from '../dates';
-import { currentSkill, skillStats, XP } from '../state';
+import { activeSkills, currentSkill, MAX_LEVEL, SKILL_LEVELS, skillStats, XP } from '../state';
 import type { AppState, Branch } from '../types';
 import { BRANCHES, METHODS } from '../types';
 import { BRANCH_META, esc, METHOD_META, plural } from './common';
@@ -8,6 +8,16 @@ function branchChips(name: string, selected: Branch) {
   return `<div class="chips" role="radiogroup">${BRANCHES.map(
     (b) => `<label class="chip-radio"><input type="radio" name="${name}" value="${b}" ${b === selected ? 'checked' : ''}><span>${BRANCH_META[b].label}</span></label>`,
   ).join('')}</div>`;
+}
+
+/** "Which skill does this count toward?" Defaults to this month's skill. */
+function skillChips(s: AppState, selected?: string) {
+  const skills = activeSkills(s);
+  if (!skills.length) return '';
+  const opts: [string, string][] = [['', 'Nothing specific'], ...skills.map((k): [string, string] => [k.id, esc(k.name)])];
+  return `<div class="field-label">Counts toward</div><div class="chips" role="radiogroup">${opts
+    .map(([id, label]) => `<label class="chip-radio"><input type="radio" name="skillId" value="${id}" ${id === (selected ?? '') ? 'checked' : ''}><span>${label}</span></label>`)
+    .join('')}</div>`;
 }
 
 export function learnView(s: AppState): string {
@@ -26,8 +36,9 @@ export function learnView(s: AppState): string {
     ${todays.map((l) => `<div class="entry"><span class="entry-tag">${BRANCH_META[l.branch].label}</span>${esc(l.text)}</div>`).join('')}
     <form data-form="learning" class="stack">
       <textarea name="text" rows="2" maxlength="280" required placeholder="${todays.length ? 'Another one? Look at you.' : "One thing. Doesn't have to be deep."}"></textarea>
+      ${skillChips(s, sk?.id)}
+      <div class="field-label">Branch <span class="muted">(skill learnings grow on that skill's branch)</span></div>
       ${branchChips('branch', sk?.branch ?? 'mind')}
-      ${sk ? `<label class="toggle-line"><input type="checkbox" name="link" checked><span>Counts toward <b>${esc(sk.name)}</b></span></label>` : ''}
       <button class="btn primary" type="submit">${earned ? 'Log another' : `Log it · +${XP.learning} XP`}</button>
     </form>
   </section>`;
@@ -62,6 +73,7 @@ export function learnView(s: AppState): string {
         (m, i) => `<label class="chip-radio"><input type="radio" name="method" value="${m}" ${i === 0 ? 'checked' : ''}><span>${METHOD_META[m]}</span></label>`,
       ).join('')}</div>
       <textarea name="text" rows="2" maxlength="400" required placeholder="How'd you make it stick?"></textarea>
+      ${skillChips(s, sk?.id)}
       <button class="btn primary" type="submit">Lock it in · +${XP.solidify} XP</button>
     </form>
   </section>`;
@@ -70,20 +82,33 @@ export function learnView(s: AppState): string {
   let monthly: string;
   if (sk) {
     const st = skillStats(s, sk);
+    const next = st.level + 1;
+    const track = SKILL_LEVELS.map(
+      (name, i) => `<button class="lvl ${i <= st.level ? 'on' : ''} ${i === st.level ? 'cur' : ''}" data-action="skill-level" data-id="${sk.id}" data-level="${i}" aria-pressed="${i === st.level}">
+        <span class="lvl-dot"></span><span class="lvl-name">${name}</span></button>`,
+    ).join('');
+    const fuel = [...st.learnings].reverse().slice(0, 3);
     monthly = `
   <section class="card skill-card">
-    <div class="card-head"><div><div class="eyebrow">${prettyMonth(month)} · ${BRANCH_META[sk.branch].label}</div><h2 class="display-sm">${esc(sk.name)}</h2></div>
-      <span class="badge">${st.pct}%</span></div>
-    <div class="xpbar"><i style="width:${st.pct}%"></i></div>
-    <div class="mini-stats">
-      <div><b>${st.days}</b><span>days fed</span></div>
-      <div><b>${st.solid}/4</b><span>locked in</span></div>
-      <div><b>${st.learnings.length}</b><span>${st.learnings.length === 1 ? 'leaf' : 'leaves'}</span></div>
+    <div class="card-head"><div><div class="eyebrow">This month's skill · ${BRANCH_META[sk.branch].label}</div><h2 class="display-sm">${esc(sk.name)}</h2></div>
+      <span class="badge">${st.levelName}</span></div>
+
+    <p class="muted small">Where are you at? Tap a step, or level up when you've earned it.</p>
+    <div class="lvl-track" style="--f:${st.level / MAX_LEVEL}">${track}</div>
+    ${next > MAX_LEVEL ? '' : `<button class="btn primary" data-action="skill-level" data-id="${sk.id}" data-level="${next}">
+      ${next === MAX_LEVEL ? `Nailed it. Mastered · +${XP.mastered} XP` : `Level up → ${SKILL_LEVELS[next]} · +${XP.level} XP`}
+    </button>`}
+
+    <div class="fuel">
+      <div class="fuel-head"><b>What you've learned for it</b><span class="muted small">${plural(st.learnings.length, 'thing')}</span></div>
+      ${fuel.length ? `<ul class="history">${fuel.map((l) => `<li><div><small>${shortDay(l.date)}</small>${esc(l.text)}</div></li>`).join('')}</ul>` : `<p class="muted small">Nothing yet. Every time you log a learning about ${esc(sk.name)}, it lands here and grows its branch on the tree.</p>`}
+      <form data-form="skill-learning" data-id="${sk.id}" class="row">
+        <input name="text" maxlength="280" required placeholder="Learned something about ${esc(sk.name)}?">
+        <button class="btn primary" type="submit">Log</button>
+      </form>
     </div>
-    <div class="row">
-      <button class="btn primary" data-action="master" data-id="${sk.id}">Mastered it · +${XP.mastered} XP</button>
-      <button class="btn ghost" data-action="drop" data-id="${sk.id}">Drop it</button>
-    </div>
+
+    <button class="link small drop-link" data-action="drop" data-id="${sk.id}">Drop this skill</button>
   </section>`;
   } else {
     monthly = `
@@ -102,12 +127,12 @@ export function learnView(s: AppState): string {
   const stale = s.skills.filter((k) => k.status === 'active' && k.month < month);
   const unfinished = stale.length
     ? `<section class="card">
-    <div class="card-head"><div><div class="eyebrow">Unfinished business</div><h2>Did you get it?</h2></div></div>
+    <div class="card-head"><div><div class="eyebrow">Unfinished business</div><h2>Where'd you land?</h2></div></div>
     ${stale
       .map(
         (k) => `<div class="stale"><div><b>${esc(k.name)}</b><small>${prettyMonth(k.month)}</small></div>
-      <div class="row tight"><button class="btn small primary" data-action="master" data-id="${k.id}">Got it</button>
-      <button class="btn small ghost" data-action="drop" data-id="${k.id}">Drop</button></div></div>`,
+      <div class="row tight"><button class="btn small primary" data-action="skill-level" data-id="${k.id}" data-level="${MAX_LEVEL}">Nailed it</button>
+      <button class="btn small ghost" data-action="drop" data-id="${k.id}">Let it go</button></div></div>`,
       )
       .join('')}
   </section>`

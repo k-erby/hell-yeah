@@ -4,7 +4,7 @@ import { bigFx, hitFx, itemFx, sfx, type FxOpts } from './fx';
 import { Pet } from './pet';
 import { moodFor, MOODS, rankFor, stageFor } from './progress';
 import {
-  addLearning, addSolidify, currentSkill, defaultState, deleteLearning, feedTreat, finishSkill, isAsleep,
+  addLearning, addSolidify, currentSkill, defaultState, deleteLearning, feedTreat, finishSkill, isAsleep, MAX_LEVEL, setSkillLevel, SKILL_LEVELS, skillLevel,
   normalize, settle, startSkill, streak, toggleItem, uid, LOY,
 } from './state';
 import { LocalRepo } from './storage';
@@ -115,7 +115,7 @@ function toast(msg: string) {
   toastTimer = window.setTimeout(() => el!.classList.remove('show'), 2600);
 }
 
-function celebrate(eyebrow: string, title: string, sub: string, button = 'Obviously.') {
+function celebrate(eyebrow: string, title: string, sub: string, button = 'Obviously.', boom?: string) {
   const m = document.createElement('div');
   m.className = 'modal';
   m.innerHTML = `<div class="modal-card"><div class="eyebrow">${eyebrow}</div><div class="display big">${title}</div><p>${sub}</p><button class="btn primary">${button}</button></div>`;
@@ -123,7 +123,7 @@ function celebrate(eyebrow: string, title: string, sub: string, button = 'Obviou
     if (e.target === m || (e.target as HTMLElement).closest('button')) m.remove();
   });
   document.body.appendChild(m);
-  bigFx(fxo(), title.replace(/<[^>]+>/g, '').toUpperCase());
+  bigFx(fxo(), boom ?? title.replace(/<[^>]+>/g, '').toUpperCase());
 }
 
 /** Run a mutation, then save/render and celebrate any level-ups it caused. */
@@ -179,11 +179,23 @@ function handleAction(action: string, el: HTMLElement) {
       }
       break;
     }
-    case 'master': {
+    case 'skill-level': {
       const sk = s.skills.find((k) => k.id === id);
-      if (!sk || !confirm(`Mark "${sk.name}" as mastered? Be honest.`)) return;
-      commit(() => finishSkill(s, id, 'mastered', currentDay));
-      celebrate('Skill mastered', esc(sk.name), 'Another branch on the tree. That one is yours forever.', 'Next.');
+      if (!sk) return;
+      const level = Number(el.dataset.level);
+      const before = skillLevel(sk);
+      if (level === before) return;
+      if (level === MAX_LEVEL && !confirm(`Nailed "${sk.name}"? That marks it mastered. Be honest.`)) return;
+      const [x, y] = center(el);
+      const gained = commit(() => setSkillLevel(s, id, level, currentDay));
+      if (level === MAX_LEVEL) {
+        celebrate('Skill mastered', esc(sk.name), 'Another branch on the tree. That one is yours forever.', 'Next.', 'MASTERED');
+      } else if (level > before) {
+        hitFx(x, y, fxo(), gained ? `+${gained} XP` : SKILL_LEVELS[level].toUpperCase());
+        toast(`<b>${esc(sk.name)}</b>: ${SKILL_LEVELS[level]}.`);
+      } else {
+        toast(`Moved back to <b>${SKILL_LEVELS[level]}</b>. Honesty is hot.`);
+      }
       break;
     }
     case 'drop': {
@@ -290,9 +302,8 @@ function handleForm(form: HTMLFormElement) {
       if (!text) return;
       const branch = (fd.get('branch') as Branch) ?? 'mind';
       if (!BRANCHES.includes(branch)) return;
-      const sk = currentSkill(s, currentDay);
-      const link = fd.get('link') === 'on' && sk ? sk.id : undefined;
-      const gained = commit(() => addLearning(s, text, branch, link, currentDay));
+      const sk = s.skills.find((k) => k.id === fd.get('skillId') && k.status === 'active');
+      const gained = commit(() => addLearning(s, text, sk?.branch ?? branch, sk?.id, currentDay));
       hitFx(x, y, fxo(), gained ? `+${gained} XP` : 'NOTED');
       break;
     }
@@ -301,8 +312,18 @@ function handleForm(form: HTMLFormElement) {
       const method = fd.get('method') as Method;
       if (!text || !METHODS.includes(method)) return;
       const learningId = (fd.get('learningId') as string) || undefined;
-      commit(() => addSolidify(s, text, method, learningId, currentDay));
+      const picked = fd.get('skillId');
+      const skill = picked === null ? undefined : s.skills.some((k) => k.id === picked) ? String(picked) : null;
+      commit(() => addSolidify(s, text, method, learningId, currentDay, skill));
       celebrate('Week locked in.', 'Solidified.', "That one's not going anywhere. Neither are you.");
+      break;
+    }
+    case 'skill-learning': {
+      const sk = s.skills.find((k) => k.id === form.dataset.id);
+      const text = String(fd.get('text') ?? '').trim();
+      if (!sk || !text) return;
+      const gained = commit(() => addLearning(s, text, sk.branch, sk.id, currentDay));
+      hitFx(x, y, fxo(), gained ? `+${gained} XP` : 'NOTED');
       break;
     }
     case 'skill': {
