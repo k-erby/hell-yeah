@@ -54,7 +54,10 @@ export function normalize(raw: unknown): AppState {
     profile: { ...d.profile, ...r.profile },
     // (Older saves tagged some tasks as dog tasks; that's gone, so keep just id + label.)
     routines: Object.fromEntries(
-      Object.entries({ ...d.routines, ...r.routines }).map(([m, items]) => [m, items.map(({ id, label }) => ({ id, label }))]),
+      Object.entries({ ...d.routines, ...r.routines }).map(([m, items]) => [
+        m,
+        items.map(({ id, label, once, doneOn }) => ({ id, label, ...(once ? { once } : {}), ...(doneOn ? { doneOn } : {}) })),
+      ]),
     ) as AppState['routines'],
     days: r.days ?? {},
     learnings: r.learnings ?? [],
@@ -109,11 +112,14 @@ export function toggleItem(s: AppState, mode: Mode, itemId: string, day = today(
   const log = (s.days[day] ??= {});
   const list = (log[mode] ??= []);
   const idx = list.indexOf(itemId);
+  const item = s.routines[mode].find((i) => i.id === itemId);
   if (idx >= 0) {
     list.splice(idx, 1);
+    if (item) delete item.doneOn;
     return { checked: false, routineDone: false };
   }
   list.push(itemId);
+  if (item?.once) item.doneOn = day;
   award(s, `item:${day}:${mode}:${itemId}`, XP.item, LOY.item, day);
   const routineDone = isRoutineDone(s, mode, day);
   if (routineDone && award(s, `routine:${day}:${mode}`, XP.routine, LOY.routine, day)) s.bo.treats += TREATS.routine;
@@ -259,8 +265,17 @@ export function bestStreak(s: AppState): number {
   return best;
 }
 
-/** Apply loyalty decay for every fully-missed day since we last checked. Returns missed day count. */
+/** One-off tasks that were checked off before `day` are finished: take them off the list. */
+export function clearDoneOneOffs(s: AppState, day = today()) {
+  for (const m of MODES) s.routines[m] = s.routines[m].filter((i) => !(i.once && i.doneOn && i.doneOn < day));
+}
+
+/**
+ * New-day housekeeping: clear finished one-offs, and apply loyalty decay for every
+ * fully-missed day since we last checked. Returns missed day count.
+ */
 export function settle(s: AppState, day = today()): number {
+  clearDoneOneOffs(s, day);
   const yesterday = addDays(day, -1);
   let d = addDays(s.bo.settledThrough, 1);
   let missed = 0;

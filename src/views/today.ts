@@ -63,6 +63,7 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
           return `<li><button class="check ${on ? 'on' : ''} ${pop ? 'pop' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${on}">
             <span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
             <span class="label">${esc(i.label)}</span>
+            ${i.once ? `<span class="once-tag">${t('today.onceTag')}</span>` : ''}
           </button></li>`;
         })
         .join('')
@@ -134,7 +135,7 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
           <button class="btn small primary" data-action="flip">${t('common.done')}</button>
         </div>
         ${routineEditor(s, mode)}
-        <p class="muted small">${t('today.editHint', { dog: s.profile.dogName })}</p>
+        <p class="muted small">${t('today.editHint')}</p>
       </div>
     </div>
   </section>

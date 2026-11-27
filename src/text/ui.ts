@@ -90,7 +90,9 @@ export const ui = {
     editing: 'Editing',
     emptyList: 'Nothing here yet.',
     addSome: 'Add some tasks',
-    editHint: 'Tag a task {dog} for bonus loyalty. Changes save instantly.',
+    editHint: '<b>Every day</b> tasks come back each morning. <b>One-offs</b> stay until you check them off, then they’re gone. Changes save instantly.',
+    /** Tag on a one-off task in the checklist. */
+    onceTag: 'One-off',
     nudges: {
       today: 'Today',
       daily: 'Daily',
@@ -110,6 +112,11 @@ export const ui = {
     moveDown: 'Move down',
     empty: 'Empty. Add something below.',
     addPlaceholder: 'Add a task',
+    /** Every task either repeats daily or happens once. */
+    daily: 'Every day',
+    once: 'One-off',
+    /** Tooltip on the row button that switches between the two. */
+    switchRepeat: 'Switch between every day and one-off',
   },
 
   // ─────────────────────────────── Learn

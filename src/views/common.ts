@@ -47,6 +47,7 @@ export function routineEditor(s: AppState, mode: Mode): string {
     .map(
       (it, i) => `<li class="edit-row">
       <input value="${esc(it.label)}" maxlength="60" data-change="rename" data-mode="${mode}" data-id="${it.id}" aria-label="${ta('editor.taskName')}">
+      <button class="repeat-btn ${it.once ? 'once' : ''}" data-action="toggle-once" data-mode="${mode}" data-id="${it.id}" title="${ta('editor.switchRepeat')}">${it.once ? t('editor.once') : t('editor.daily')}</button>
       <button class="icon-btn" data-action="move" data-mode="${mode}" data-id="${it.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="${ta('editor.moveUp')}">↑</button>
       <button class="icon-btn" data-action="move" data-mode="${mode}" data-id="${it.id}" data-dir="1" ${i === items.length - 1 ? 'disabled' : ''} aria-label="${ta('editor.moveDown')}">↓</button>
       <button class="icon-btn danger" data-action="del-item" data-mode="${mode}" data-id="${it.id}" aria-label="${ta('common.delete')}">×</button>
@@ -54,9 +55,15 @@ export function routineEditor(s: AppState, mode: Mode): string {
     )
     .join('');
   return `<ul class="editor">${rows || `<li class="muted small">${t('editor.empty')}</li>`}</ul>
-    <form data-form="add-item" data-mode="${mode}" class="row">
-      <input name="label" maxlength="60" required placeholder="${ta('editor.addPlaceholder')}">
-      <button class="btn primary" type="submit">${t('common.add')}</button>
+    <form data-form="add-item" data-mode="${mode}" class="add-item">
+      <div class="row">
+        <input name="label" maxlength="60" required placeholder="${ta('editor.addPlaceholder')}">
+        <button class="btn primary" type="submit">${t('common.add')}</button>
+      </div>
+      <div class="chips" role="radiogroup">
+        <label class="chip-radio"><input type="radio" name="repeat" value="daily" checked><span>${t('editor.daily')}</span></label>
+        <label class="chip-radio"><input type="radio" name="repeat" value="once"><span>${t('editor.once')}</span></label>
+      </div>
     </form>`;
 }
 

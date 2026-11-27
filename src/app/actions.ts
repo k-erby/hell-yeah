@@ -174,6 +174,16 @@ export function handleAction(action: string, el: HTMLElement) {
         );
       }
       break;
+    case 'toggle-once':
+      commit(() => {
+        const it = s.routines[el.dataset.mode as Mode].find((i) => i.id === id);
+        if (!it) return;
+        if (it.once) {
+          delete it.once;
+          delete it.doneOn;
+        } else it.once = true;
+      });
+      break;
     case 'move':
       commit(() => {
         const list = s.routines[el.dataset.mode as Mode];
@@ -255,7 +265,8 @@ export function handleForm(form: HTMLFormElement) {
     case 'add-item': {
       const label = String(fd.get('label') ?? '').trim();
       if (!label) return;
-      commit(() => s.routines[form.dataset.mode as Mode].push({ id: uid(), label }));
+      const once = fd.get('repeat') === 'once';
+      commit(() => s.routines[form.dataset.mode as Mode].push({ id: uid(), label, ...(once ? { once: true as const } : {}) }));
       (document.querySelector('form[data-form="add-item"] input') as HTMLInputElement | null)?.focus();
       break;
     }

@@ -64,6 +64,30 @@ describe('routines', () => {
     expect(s.bo.loyalty - start).toBe(LOY.meal);
     expect(s.bo.treats).toBe(1);
   });
+  it('one-off tasks stay until checked off, then leave the next day', () => {
+    const s = defaultState();
+    s.routines.morning.push({ id: 'dentist', label: 'Call the dentist', once: true });
+    settle(s, addDays(D, 1));
+    expect(s.routines.morning.some((i) => i.id === 'dentist')).toBe(true); // not done: still there
+    toggleItem(s, 'morning', 'dentist', addDays(D, 1));
+    settle(s, addDays(D, 1));
+    expect(s.routines.morning.some((i) => i.id === 'dentist')).toBe(true); // done today: still showing
+    settle(s, addDays(D, 2));
+    expect(s.routines.morning.some((i) => i.id === 'dentist')).toBe(false); // gone tomorrow
+    expect(s.routines.morning.length).toBeGreaterThan(0); // every-day tasks untouched
+  });
+  it('unchecking a one-off keeps it around', () => {
+    const s = defaultState();
+    s.routines.morning.push({ id: 'x', label: 'One thing', once: true });
+    toggleItem(s, 'morning', 'x', D);
+    toggleItem(s, 'morning', 'x', D);
+    settle(s, addDays(D, 1));
+    expect(s.routines.morning.some((i) => i.id === 'x')).toBe(true);
+  });
+  it('keeps one-offs through a save', () => {
+    const s = normalize({ routines: { morning: [{ id: 'a', label: 'Once', once: true, doneOn: D }] } });
+    expect(s.routines.morning[0]).toEqual({ id: 'a', label: 'Once', once: true, doneOn: D });
+  });
   it('drops the old dog-task tag from saves', () => {
     const s = normalize({ routines: { morning: [{ id: 'a', label: 'Walk Bo', bo: true }] } });
     expect(s.routines.morning[0]).toEqual({ id: 'a', label: 'Walk Bo' });

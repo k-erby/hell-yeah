@@ -12,6 +12,10 @@ export const METHODS: Method[] = ['practiced', 'taught', 'wrote', 'built'];
 export interface RoutineItem {
   id: string;
   label: string;
+  /** One-off: shows until it's checked off, then it's gone the next day. Otherwise it repeats every day. */
+  once?: true;
+  /** For one-offs: the day it got checked off. */
+  doneOn?: string;
 }
 
 /** "Every DAY I learn something new." */
