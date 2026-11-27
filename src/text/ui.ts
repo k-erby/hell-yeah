@@ -218,12 +218,17 @@ export const ui = {
       eyebrow: 'Crew',
       heading: 'Accountability',
       name: 'Your name',
-      dogName: "Dog's name",
+      dogName: "Pet's name",
       buddy: 'Accountability buddy',
       buddyPlaceholder: "Who's keeping you honest?",
       share: 'Send my status',
       shareTo: 'Send my status to {buddy}',
       shareHint: 'Live buddy sync is coming. For now, this sends a status card over text or anything else on your phone.',
+    },
+    pet: {
+      eyebrow: 'Pet',
+      heading: 'Pick your pet',
+      hint: 'Switching only changes the look. Loyalty, bond and treats come along.',
     },
     vibe: {
       eyebrow: 'Vibe',

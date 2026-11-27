@@ -1,4 +1,5 @@
 import { addDays, daysInMonth, monthOf, today, weekOf } from './dates';
+import { isPetKind } from '../pets/kinds';
 import type { AppState, Branch, Learning, Method, Mode, RoutineItem, Skill } from './types';
 import { MODES } from './types';
 import { list, tx } from '../lib/i18n';
@@ -29,7 +30,7 @@ export function defaultState(now = new Date()): AppState {
   const t = today(now);
   return {
     version: 1,
-    profile: { name: tx('defaults.name'), dogName: tx('defaults.dogName'), buddyName: '', createdAt: t },
+    profile: { name: tx('defaults.name'), dogName: tx('defaults.dogName'), buddyName: '', createdAt: t, pet: 'bo' },
     routines: defaultRoutines(),
     days: {},
     learnings: [],
@@ -51,7 +52,7 @@ export function normalize(raw: unknown): AppState {
     ...d,
     ...r,
     version: 1,
-    profile: { ...d.profile, ...r.profile },
+    profile: { ...d.profile, ...r.profile, pet: isPetKind(r.profile?.pet) ? r.profile.pet : 'bo' },
     // (Older saves tagged some tasks as dog tasks; that's gone, so keep just id + label.)
     routines: Object.fromEntries(
       Object.entries({ ...d.routines, ...r.routines }).map(([m, items]) => [

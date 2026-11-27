@@ -3,6 +3,15 @@
  * Written for any pet: {pet} is the pet's name. <b>bold</b> is fine.
  */
 export const pets = {
+  /** The pets you can pick in Settings. Picking one renames your pet, unless you've given it your own name. */
+  kinds: {
+    bo: { name: 'Bo', what: 'German shepherd' },
+    hudson: { name: 'Hudson', what: 'Golden retriever' },
+    monty: { name: 'Monty', what: 'Fluffy orange cat' },
+    hubble: { name: 'Hubble', what: 'Tuxedo cat' },
+    rat: { name: 'Ziggy', what: 'Rat' },
+    pigeon: { name: 'Pearl', what: 'Pigeon' },
+  },
   /** Shown when the pet needs something. Only one at a time; "Not now" hides it until tomorrow. */
   needs: {
     sulking: "<b>{pet}'s sulking.</b> Check something off to win {pet} back.",

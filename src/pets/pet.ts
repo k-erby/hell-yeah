@@ -2,6 +2,7 @@ import { bbox, build, frameInner, SITTING, SPRITE_H, SPRITE_W, type HeadV, type 
 import { sfx } from '../effects/fx';
 import type { Mood } from '../app/types';
 import { tx } from '../lib/i18n';
+import type { PetKind } from './kinds';
 import { ballSvg, BALL_W, bedFrontSvg, bedSvg, BED_W, bowlSvg, shelfSvg, trunkSvg } from './props';
 import type { dog } from '../text/dog';
 
@@ -17,6 +18,8 @@ type StatusKey = keyof typeof dog.status;
    ============================================================ */
 
 export interface PetEnv {
+  /** Which pet (src/pets/kinds.ts). */
+  kind: PetKind;
   stage: number;
   mood: Mood;
   asleep: boolean;
@@ -58,14 +61,19 @@ const BALL_R = (BALL_W * PX) / 2;
 /** Lying down, his body sits this far ahead of the sprite's centre (in the way he faces). */
 const BODY_AHEAD = 2 * PX;
 
-const STAND_MOUTH = build({ fam: 'stand', head: 'up', tail: 'hang' }, 0, 'locked-in').mouth;
-const MOUTH_X = (STAND_MOUTH[0] + 0.5 - SPRITE_W / 2) * PX; // snout tip, relative to sprite centre
 
-// Close-up crop: the head and shoulders of the sitting pose.
-const CLOSE_CROP = (() => {
-  const [x, y, w, h] = bbox(build(SITTING, 0, 'locked-in'), 'head');
-  return { x: x - 4, y: y - 2, w: w + 8, h: h + 6 };
-})();
+/** Per pet: where its snout is when standing, and the close-up crop (head and shoulders of the sitting pose). */
+const sizes = new Map<PetKind, { mouth: [number, number]; mouthX: number; crop: { x: number; y: number; w: number; h: number } }>();
+function sizeOf(kind: PetKind) {
+  let z = sizes.get(kind);
+  if (!z) {
+    const mouth = build({ fam: 'stand', head: 'up', tail: 'hang' }, 0, 'locked-in', kind).mouth;
+    const [x, y, w, h] = bbox(build(SITTING, 0, 'locked-in', kind), 'head');
+    z = { mouth, mouthX: (mouth[0] + 0.5 - SPRITE_W / 2) * PX, crop: { x: x - 4, y: y - 2, w: w + 8, h: h + 6 } };
+    sizes.set(kind, z);
+  }
+  return z;
+}
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const chance = (p: number) => Math.random() < p;
@@ -116,7 +124,7 @@ export class Pet {
   private act: Act | null = null;
   private queue: Act[] = [];
   private hype = false;
-  private mouth: [number, number] = STAND_MOUTH;
+  private mouth: [number, number] = sizeOf('bo').mouth;
   private eye: [number, number] | null = null;
 
   // ---- close-up world
@@ -160,7 +168,7 @@ export class Pet {
   mount(scene: HTMLElement, status: HTMLElement) {
     this.unmount();
     this.scene = scene;
-    const c = CLOSE_CROP;
+    const c = sizeOf(this.env().kind).crop;
     scene.innerHTML = `
       <div class="house">
         <div class="ground"></div>
@@ -598,7 +606,7 @@ export class Pet {
         const b = this.ball;
         if (!b.on) return true;
         const dir: 1 | -1 = b.x >= this.x ? 1 : -1;
-        const target = b.x - dir * MOUTH_X;
+        const target = b.x - dir * sizeOf(this.env().kind).mouthX;
         const d = target - this.x;
         this.facing = dir;
         if (Math.abs(d) < 6 && b.y < 24) {
@@ -1003,7 +1011,7 @@ export class Pet {
 
     // ---- house
     const spec = this.houseSpec(env.mood);
-    const key = `${JSON.stringify(spec)}|${env.stage}|${env.mood}`;
+    const key = `${JSON.stringify(spec)}|${env.stage}|${env.mood}|${env.kind}`;
     // Props only redraw when what they show changes.
     const trunkKey = String(env.streak);
     if (trunkKey !== this.trunkKey) els.trunk.innerHTML = trunkSvg(PX, env.streak), (this.trunkKey = trunkKey);
@@ -1013,7 +1021,7 @@ export class Pet {
     if (bowlKey !== this.bowlKey) els.bowl.innerHTML = bowlSvg(PX, env.fed), (this.bowlKey = bowlKey);
     if (key !== this.svgKey) {
       this.svgKey = key;
-      const b = build(spec, env.stage, env.mood);
+      const b = build(spec, env.stage, env.mood, env.kind);
       this.mouth = b.mouth;
       this.eye = b.eye;
       els.svg.innerHTML = frameInner(b);
@@ -1047,11 +1055,11 @@ export class Pet {
         ears: this.earsBack ? 'back' : 'up',
         hdy: this.fmod === 'look-up' ? -1 : this.fmod === 'boop' ? 1 : 0,
       };
-      const fkey = `${JSON.stringify(cspec)}|${env.stage}|${env.mood}`;
-      const c = CLOSE_CROP;
+      const fkey = `${JSON.stringify(cspec)}|${env.stage}|${env.mood}|${env.kind}`;
+      const c = sizeOf(env.kind).crop;
       if (fkey !== this.faceKey) {
         this.faceKey = fkey;
-        const fb = build(cspec, env.stage, env.mood);
+        const fb = build(cspec, env.stage, env.mood, env.kind);
         els.face.innerHTML = frameInner(fb);
         const H = this.scene.clientHeight || 270;
         const left = (this.W - c.w * FPX) / 2;

@@ -97,7 +97,7 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
       </div>
       <button class="mini-bo mood-${mood}" data-action="tab" data-tab="bo" aria-label="${esc(s.profile.dogName)}: ${moodName(mood)}">
         ${note ? `<span class="mini-bubble">${iconSvg(note.icon, 2)}</span>` : ''}
-        <span class="lcd ${isAsleep(s) ? 'asleep' : ''}">${boSvg(stage.index, mood, stage.index === 0 ? 'pup' : '', isAsleep(s) ? SLEEPING : SITTING)}</span>
+        <span class="lcd ${isAsleep(s) ? 'asleep' : ''}">${boSvg(stage.index, mood, stage.index === 0 ? 'pup' : '', isAsleep(s) ? SLEEPING : SITTING, s.profile.pet)}</span>
         <span class="mini-meter"><i style="width:${s.bo.loyalty}%"></i></span>
       </button>
     </div>

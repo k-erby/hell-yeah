@@ -1,3 +1,5 @@
+import type { PetKind } from '../pets/kinds';
+
 export type Mode = 'morning' | 'afternoon' | 'night';
 export type Branch = 'body' | 'mind' | 'craft' | 'money' | 'social';
 export type Method = 'practiced' | 'taught' | 'wrote' | 'built';
@@ -59,7 +61,8 @@ export interface Settings {
 
 export interface AppState {
   version: 1;
-  profile: { name: string; dogName: string; buddyName: string; createdAt: string };
+  /** dogName is the pet's name, whatever the pet is (kept as dogName so old saves still load). */
+  profile: { name: string; dogName: string; buddyName: string; createdAt: string; pet: PetKind };
   routines: Record<Mode, RoutineItem[]>;
   /** day -> mode -> checked item ids */
   days: Record<string, Partial<Record<Mode, string[]>>>;

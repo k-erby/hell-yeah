@@ -33,6 +33,7 @@ function house() {
 /** The animated dog on the dog tab. */
 export const pet = new Pet(
   () => ({
+    kind: session.s.profile.pet,
     stage: stageFor(session.s.bo.bond).index,
     mood: moodFor(session.s.bo.loyalty),
     asleep: isAsleep(session.s),

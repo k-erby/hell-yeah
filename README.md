@@ -40,11 +40,12 @@ omg i just learned about a push notification thing for iOS called "Bark" - brill
 - need to add UI breadcrumbs to indicate "reoccuring tasks" from "one-off, daily tasks"
 - should there be a feed?
 -- should the feed just be pictures of megan thee stallion (haha jk. (not really, only half jk))
+- UHM, SKILL ROULETTE???? like what if you have a "bank" of random skills (user-generated, you and/or others) and you can pick certain ones to add into it. 
+- there should be like... an export your learnings feature. so it could be an email, or a pdf or something.
 
 ## improvements
 - i think the pet stuff should be more obvious. maybe a little blurb above the to-do checklist reminding you about the pet?
 - the XP/loyalty stuff needs to be stronger, gotta think on that.
-- also, the "how the pet thing" works should be higher up - it feels disjointed right now and i'm too lazy to copy and paste (future kaitlin problem)
 - the "share" feature needs soooo much more work, since it kinda just opens your messages and give you some info you may not want to send (like your being a rookie or your XP). I think it would be cool to have it be more like the wordle share - maybe you can cater it to what "daily" "weekly" or "monthly"
 - i should make it so you can handle multiple monthly skills (there should be a warning about it, tho)
 - also, i'm not a fan of the alert "r u sure?" dialogue pop-ups on laptops. i haven't tested it on mobile with that, but like... ew. so i'll need to fix that (just for myself, tbf)

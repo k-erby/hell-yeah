@@ -1,31 +1,18 @@
-import { BOW, HEAD, LIE, SIT, T_HANG, T_LIE, T_OUT, T_SIT, T_UP, TORSO, type Part } from './parts';
+import { BOW, HEAD, LIE, SIT, TORSO, type Part } from './parts';
 import type { Mood } from '../../app/types';
+import { KIND, type PetKind } from '../kinds';
+import { buildPose } from '../poses';
+import type { DogLook } from './looks';
 
 /* ============================================================
-   Bo's pixel art. TODO: change this to a sprite later.
-
-   Palette: t tan · d dark tan · l light tan · k saddle · g saddle grey
-            b far-side leg · n black · p inner ear · r tongue · w eye shine
-            c gold (unused for now)
+   The pet's pixel art. Dogs are built leg by leg from parts.ts and dressed
+   in a look (looks.ts: colours, head, tail). Other pets are drawn from
+   whole poses (poses.ts).
    Everything faces right on a 48x32 canvas, feet on row 31.
    ============================================================ */
 
 export const SPRITE_W = 48;
 export const SPRITE_H = 32;
-
-const PAL: Record<string, string> = {
-  t: '#ca9654',
-  d: '#af6b32',
-  l: '#d0ab7b',
-  k: '#322a29',
-  g: '#4a403f',
-  b: '#783a22',
-  n: '#000000',
-  p: '#ed9261',
-  r: '#ff614d',
-  w: '#ffffff',
-  c: '#f2cf5b',
-};
 
 type Pt = [number, number];
 type Layer = string[][];
@@ -82,18 +69,8 @@ const drawLeg = (layer: Layer, leg: Leg, x: number, y: number, far = false) =>
 // Hind leg raised to scratch behind the ear while sitting.
 const SCRATCH = ['......tt', '.....dtl', '....dtl.', '...dtl..', '..dtl...', '.dtl....', 'dtl.....'];
 
-// ---------- head variants (row patches on the shared head) ----------
+// ---------- head ----------
 
-const HEAD_ROWS = [...HEAD.rows, '............', '............'];
-const HEAD_PATCH: Record<string, Record<number, string>> = {
-  pant: { 8: 'gkdttltkkd..', 9: '........krk.', 10: '.........r..' },
-  pant2: { 8: 'gkdttltkkd..', 9: '........kr..', 10: '........rr..' },
-  bark: { 8: 'gkdttltrr...', 9: '.....dkkk...' },
-  yawn: { 8: 'gkdttltrrr..', 9: '.....dkkkk..' },
-  chew: { 8: 'gkdttlt.kkk.' },
-  earsBack: { 0: '............', 1: '............', 2: 'ddddd.......', 3: '..pppd......' },
-  tilt: { 0: '....d.......', 1: '...dd.......', 2: '...dpd......' },
-};
 const HEAD_MOUTH: Pt = [11, 7]; // nose tip / where a ball gets carried
 
 // ---------- frame specs ----------
@@ -136,28 +113,37 @@ export interface Built {
   eye: Pt | null;
   mouth: Pt;
   closedEyes: boolean;
+  pal: Record<string, string>;
+  /** Draw a blinking eyelid over the eye. */
+  blink: boolean;
 }
 
-function tailRows(t: TailV): { part: Part; rows: string[] } {
+function tailRows(t: TailV, look: DogLook): { part: Part; rows: string[] } {
+  const T = look.tails;
   switch (t) {
-    case 'hang': return { part: T_HANG, rows: T_HANG.rows };
-    case 'hangL': return { part: T_HANG, rows: lean(T_HANG.rows, -1, false) };
-    case 'hangR': return { part: T_HANG, rows: lean(T_HANG.rows, 1, false) };
-    case 'out': return { part: T_OUT, rows: T_OUT.rows };
-    case 'up': return { part: T_UP, rows: T_UP.rows };
-    case 'upL': return { part: T_UP, rows: lean(T_UP.rows, -2) };
-    case 'upR': return { part: T_UP, rows: lean(T_UP.rows, 1) };
-    case 'flat': return { part: T_SIT, rows: T_SIT.rows };
-    case 'flatUp': return { part: T_SIT, rows: lean(T_SIT.rows, -1) };
+    case 'hang': return { part: T.hang, rows: T.hang.rows };
+    case 'hangL': return { part: T.hang, rows: lean(T.hang.rows, -1, false) };
+    case 'hangR': return { part: T.hang, rows: lean(T.hang.rows, 1, false) };
+    case 'out': return { part: T.out, rows: T.out.rows };
+    case 'up': return { part: T.up, rows: T.up.rows };
+    case 'upL': return { part: T.up, rows: lean(T.up.rows, -2) };
+    case 'upR': return { part: T.up, rows: lean(T.up.rows, 1) };
+    case 'flat': return { part: T.sit, rows: T.sit.rows };
+    case 'flatUp': return { part: T.sit, rows: lean(T.sit.rows, -1) };
   }
 }
 
-/** `_stage` is kept for later (accessories per animal); nothing is drawn from it yet. */
-export function build(spec: Spec, _stage: number, mood: Mood): Built {
+/** A frame of the pet. `_stage` is kept for later (accessories per animal); nothing is drawn from it yet. */
+export function build(spec: Spec, _stage: number, mood: Mood, kind: PetKind = 'bo'): Built {
+  const k = KIND[kind];
+  return 'dog' in k ? buildDog(spec, mood, k.dog) : buildPose(spec, mood, k.poses, SPRITE_W, SPRITE_H);
+}
+
+function buildDog(spec: Spec, mood: Mood, look: DogLook): Built {
   const Ly = { far: blank(), tail: blank(), body: blank(), near: blank(), head: blank() };
   const dy = spec.dy ?? 0;
   let head: Pt; // top-left of the head
-  let tail = tailRows(spec.tail);
+  let tail = tailRows(spec.tail, look);
 
   switch (spec.fam) {
     case 'stand': {
@@ -168,26 +154,26 @@ export function build(spec: Spec, _stage: number, mood: Mood): Built {
       drawLeg(Ly.near, legs[0], 28, 24 + dy);
       drawLeg(Ly.near, legs[2], 18, 24 + dy);
       head = spec.head === 'down' ? [31, 15 + dy] : [HEAD.x, HEAD.y + dy];
-      if (spec.tail === 'flat' || spec.tail === 'flatUp') tail = tailRows('hang');
+      if (spec.tail === 'flat' || spec.tail === 'flatUp') tail = tailRows('hang', look);
       break;
     }
     case 'sit': {
       drawPart(Ly.body, SIT);
       if (spec.scratch) draw(Ly.near, SCRATCH, 14, spec.scratch === 1 ? 21 : 22);
       head = [22, 9];
-      if (!spec.tail.startsWith('flat')) tail = tailRows('flat');
+      if (!spec.tail.startsWith('flat')) tail = tailRows('flat', look);
       break;
     }
     case 'lie': {
       drawPart(Ly.body, LIE);
       head = spec.head === 'rest' ? [30, 18] : [30, 16];
-      tail = { part: T_LIE, rows: spec.tail === 'flatUp' ? lean(T_LIE.rows, -1) : T_LIE.rows };
+      tail = { part: look.tails.lie, rows: spec.tail === 'flatUp' ? lean(look.tails.lie.rows, -1) : look.tails.lie.rows };
       break;
     }
     case 'bow': {
       drawPart(Ly.body, BOW);
       head = [30, 17];
-      if (!spec.tail.startsWith('up')) tail = tailRows('up');
+      if (!spec.tail.startsWith('up')) tail = tailRows('up', look);
       break;
     }
   }
@@ -195,9 +181,9 @@ export function build(spec: Spec, _stage: number, mood: Mood): Built {
   draw(Ly.tail, tail.rows, tail.part.x, tail.part.y + (spec.fam === 'stand' ? dy : 0));
 
   // Head
-  const rows = [...HEAD_ROWS];
-  const variant = spec.head === 'down' || spec.head === 'rest' ? 'up' : spec.head;
-  const patch = { ...(spec.ears === 'back' ? HEAD_PATCH.earsBack : {}), ...(HEAD_PATCH[variant] ?? {}) };
+  const rows = [...look.head];
+  const variant = spec.head === 'down' || spec.head === 'rest' || spec.head === 'up' ? null : spec.head;
+  const patch = { ...(spec.ears === 'back' ? look.patch.earsBack : {}), ...(variant ? look.patch[variant] : {}) };
   for (const [i, r] of Object.entries(patch)) rows[Number(i)] = r;
   const hx = head[0];
   const hy = head[1] + (spec.hdy ?? 0) + (spec.head === 'tilt' ? 1 : 0);
@@ -227,10 +213,10 @@ export function build(spec: Spec, _stage: number, mood: Mood): Built {
     }
   }
 
-  return { layers: Ly, eye, mouth: G(HEAD_MOUTH), closedEyes: closed };
+  return { layers: Ly, eye, mouth: G(HEAD_MOUTH), closedEyes: closed, pal: look.pal, blink: true };
 }
 
-function rects(g: Layer): string {
+function rects(g: Layer, pal: Record<string, string>): string {
   let out = '';
   for (let y = 0; y < SPRITE_H; y++) {
     let x = 0;
@@ -242,7 +228,7 @@ function rects(g: Layer): string {
       }
       let len = 1;
       while (x + len < SPRITE_W && g[y][x + len] === c) len++;
-      out += `<rect x="${x}" y="${y}" width="${len}" height="1" fill="${PAL[c]}"/>`;
+      out += `<rect x="${x}" y="${y}" width="${len}" height="1" fill="${pal[c]}"/>`;
       x += len;
     }
   }
@@ -253,11 +239,11 @@ function rects(g: Layer): string {
 export function frameInner(b: Built): string {
   const Ly = b.layers;
   let lid = '';
-  if (b.eye && !b.closedEyes) {
+  if (b.blink && b.eye && !b.closedEyes) {
     const [wx, wy] = b.eye;
-    lid = `<g class="bo-eye-lid"><rect x="${wx - 1}" y="${wy - 1}" width="3" height="1" fill="${PAL.t}"/><rect x="${wx - 1}" y="${wy}" width="3" height="1" fill="${PAL.n}"/></g>`;
+    lid = `<g class="bo-eye-lid"><rect x="${wx - 1}" y="${wy - 1}" width="3" height="1" fill="${b.pal.t}"/><rect x="${wx - 1}" y="${wy}" width="3" height="1" fill="${b.pal.n}"/></g>`;
   }
-  return `<g class="bo-far">${rects(Ly.far)}</g><g class="bo-tail">${rects(Ly.tail)}</g><g class="bo-body">${rects(Ly.body)}</g><g class="bo-near">${rects(Ly.near)}</g><g class="bo-head">${rects(Ly.head)}${lid}</g>`;
+  return `<g class="bo-far">${rects(Ly.far, b.pal)}</g><g class="bo-tail">${rects(Ly.tail, b.pal)}</g><g class="bo-body">${rects(Ly.body, b.pal)}</g><g class="bo-near">${rects(Ly.near, b.pal)}</g><g class="bo-head">${rects(Ly.head, b.pal)}${lid}</g>`;
 }
 
 export function bbox(b: Built, only?: keyof Built['layers']): [number, number, number, number] {
@@ -277,9 +263,9 @@ export function bbox(b: Built, only?: keyof Built['layers']): [number, number, n
 export const SITTING: Spec = { fam: 'sit', head: 'up', tail: 'flat' };
 export const SLEEPING: Spec = { fam: 'lie', head: 'rest', tail: 'flat' };
 
-/** Standalone SVG cropped to the dog (thumbnails on Today / the tree). */
-export function boSvg(stage: number, mood: Mood, cls = '', spec: Spec = SITTING): string {
-  const b = build(spec, stage, mood);
+/** Standalone SVG cropped to the pet (thumbnails on Today, the pet picker). */
+export function boSvg(stage: number, mood: Mood, cls = '', spec: Spec = SITTING, kind: PetKind = 'bo'): string {
+  const b = build(spec, stage, mood, kind);
   const [x, y, w, h] = bbox(b);
   return `<svg class="bo ${cls}" viewBox="${x} ${y} ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${frameInner(b)}</svg>`;
 }

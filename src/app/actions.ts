@@ -4,6 +4,7 @@
  * main.ts sends those events here.
  */
 import { dayKey, monthName, monthOf } from './dates';
+import { isPetKind } from '../pets/kinds';
 import { celebrate, center, toast } from '../effects/feedback';
 import { bigFx, hitFx, itemFx, sfx } from '../effects/fx';
 import { t, tx } from '../lib/i18n';
@@ -154,6 +155,16 @@ export function handleAction(action: string, el: HTMLElement) {
       const value = raw === 'true' ? true : raw === 'false' ? false : raw;
       commit(() => ((s.settings as unknown as Record<string, unknown>)[key] = value));
       if (key === 'theme') applyTheme();
+      break;
+    }
+    case 'pet-kind': {
+      const kind = el.dataset.kind;
+      if (!isPetKind(kind) || kind === s.profile.pet) break;
+      commit(() => {
+        // Keep a name they picked themselves; otherwise take the new pet's name.
+        if (s.profile.dogName === tx(`pets.kinds.${s.profile.pet}.name`)) s.profile.dogName = tx(`pets.kinds.${kind}.name`);
+        s.profile.pet = kind;
+      });
       break;
     }
     case 'test-fx':
