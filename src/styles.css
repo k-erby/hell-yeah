@@ -423,12 +423,21 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .pet.anim-dig .dirt { display: block; }
 @keyframes dirt { 0% { translate: 0 0; opacity: 1; } 100% { translate: -46px -26px; opacity: 0; } }
 
-/* toys */
-.toy-ball {
-  position: absolute; left: 0; bottom: 18px; width: 14px; height: 14px; border-radius: 3px;
-  background: radial-gradient(circle at 35% 30%, #fff 0 2px, #ff3d8b 2.5px 100%);
-  box-shadow: 0 0 0 2px #16110a; pointer-events: none; will-change: transform;
-}
+/* props: pixel art from src/pets/props.ts. Bed colours follow the theme.
+   Outlines (.n) are a dark version of each prop's own colour, not black. */
+.toy-ball { position: absolute; left: 0; bottom: 16px; pointer-events: none; will-change: transform; }
+.prop { display: block; overflow: visible; }
+.bed-spot { position: absolute; left: 0; bottom: 14px; pointer-events: none; }
+.bed .n { fill: color-mix(in srgb, var(--accent) 32%, #000); }
+.bed .h { fill: var(--accent2); }
+.bed .m { fill: var(--accent); }
+.bed .s { fill: color-mix(in srgb, var(--accent) 55%, #000); }
+.bed .c { fill: #efe4cc; }
+.bed .d { fill: #cbbd9c; }
+.ball .n { fill: #7a2016; }
+.ball .w { fill: #fff; }
+.ball .r { fill: #ff614d; }
+.ball .d { fill: #b8392b; }
 
 /* bark lines (inside the flipped sprite, so they point the way he faces) */
 .bark-lines { display: none; position: absolute; left: 138px; top: 50px; width: 20px; height: 30px; }
@@ -572,3 +581,74 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .lock-in { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.28); border-left: 3px solid var(--accent); font-size: 14px; }
 .from-learning { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 14px; color: var(--muted); }
 .from-learning small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 2px; }
+
+/* ============================================================
+   EXPERIMENT: dog tab in the app's own style.
+   Overrides the bronze handheld + cream LCD above. Sprites untouched.
+   To throw it away: delete from here to the end of the file.
+   ============================================================ */
+
+/* The handheld becomes a card: same glass, border and theme colours as the rest. */
+.device {
+  max-width: none; padding: 16px; border-radius: 24px;
+  background: linear-gradient(180deg, var(--surface2), var(--surface));
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.device-top { padding: 0 2px 12px; font: 700 11px/1 Inter, system-ui, sans-serif; letter-spacing: .18em; color: var(--accent); }
+.stage-name { font-size: 16px; letter-spacing: .04em; }
+
+/* The screen becomes a dark stage with a spotlight in the theme colour. */
+.screen {
+  border-radius: 16px;
+  background:
+    radial-gradient(60% 55% at 50% 92%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%),
+    radial-gradient(90% 70% at 50% 100%, color-mix(in srgb, var(--accent2) 10%, transparent), transparent 75%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+  box-shadow: inset 0 0 0 1px var(--line), inset 0 10px 30px rgba(0,0,0,.5);
+}
+.scan { display: none; }
+.ground {
+  height: 16px; box-shadow: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+  border-top: 1px solid color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.ground::before { content: ''; position: absolute; inset: -1px 10% auto; height: 1px; box-shadow: 0 0 14px 2px var(--glow); }
+.pet::before { background: rgba(0,0,0,.45); }
+/* A thin light rim so the dark parts of the dog don't vanish on the dark stage. */
+.pet .bo, .face { filter: drop-shadow(0 0 .6px color-mix(in srgb, var(--accent2) 70%, transparent)); }
+
+/* Bits drawn in near-black for the old cream screen, now light so they show up. */
+.bark-lines i { background: var(--accent2); }
+.zzz i { color: var(--accent2); }
+.treat-biscuit, .treat-biscuit::before, .treat-biscuit::after, .sparkle { box-shadow: 0 0 0 2px rgba(0,0,0,.6); }
+
+/* Meter and status: same look as the XP bar and labels elsewhere. */
+.device-meter { padding: 16px 2px 0; color: var(--muted); font: 700 11px/1 Inter, system-ui, sans-serif; letter-spacing: .14em; }
+.meter { height: 6px; padding: 0; border-radius: 99px; background: var(--surface2); box-shadow: none; overflow: hidden; }
+.meter i { border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow: 0 0 12px var(--glow); }
+.mood-label {
+  font: 18px Anton, Impact, sans-serif; letter-spacing: .06em;
+  background: linear-gradient(180deg, var(--accent2), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#bo-status { font: 700 11px/1.2 Inter, system-ui, sans-serif; color: var(--muted); }
+
+/* Buttons: the app's pill buttons. Treat is the primary one. */
+.device-btns { gap: 8px; margin-top: 16px; }
+.dbtn, .dbtn.wide {
+  max-width: none; height: 44px; border-radius: 14px; border: 1px solid var(--line);
+  font: 800 12px/1 Inter, system-ui, sans-serif; letter-spacing: .1em; color: var(--text);
+  background: var(--surface2); box-shadow: none; transition: transform .12s;
+}
+.dbtn.wide { flex: 1.4; border: 0; color: var(--on-accent); background: linear-gradient(180deg, var(--accent2), var(--accent)); box-shadow: 0 6px 22px var(--glow); }
+.dbtn:active, .dbtn.wide:active { transform: scale(.96); box-shadow: none; }
+
+/* The little dog on Today: same stage look. */
+.mini-bo { background: linear-gradient(180deg, var(--surface2), var(--surface)); box-shadow: 0 6px 24px rgba(0,0,0,.4); }
+.mini-bo .lcd {
+  background:
+    radial-gradient(70% 50% at 50% 100%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 75%),
+    linear-gradient(180deg, var(--bg), var(--bg2));
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.mini-bo .bo { filter: drop-shadow(0 0 .5px color-mix(in srgb, var(--accent2) 70%, transparent)); }

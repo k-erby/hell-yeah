@@ -65,6 +65,7 @@ export const dog = {
     asleepRub: 'asleep · rub to wake',
     stillAsleep: 'still asleep',
     gettingSleepy: 'getting sleepy',
+    headingToBed: 'heading to bed',
     gettingComfy: 'getting comfy',
     wakingUp: 'waking up',
     yawning: 'yawning',

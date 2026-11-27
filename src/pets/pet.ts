@@ -2,6 +2,7 @@ import { bbox, build, frameInner, SITTING, SPRITE_H, SPRITE_W, type HeadV, type 
 import { sfx } from '../effects/fx';
 import type { Mood } from '../app/types';
 import { tx } from '../lib/i18n';
+import { ballSvg, BALL_W, bedFrontSvg, bedSvg, BED_W } from './props';
 import type { dog } from '../text/dog';
 
 type StatusKey = keyof typeof dog.status;
@@ -47,6 +48,9 @@ const SH = SPRITE_H * PX;
 const FPX = 11; // close-up: screen px per sprite pixel
 const GROUND = 18;
 const GRAVITY = 900;
+const BALL_R = (BALL_W * PX) / 2;
+/** Lying down, his body sits this far ahead of the sprite's centre (in the way he faces). */
+const BODY_AHEAD = 2 * PX;
 
 const STAND_MOUTH = build({ fam: 'stand', head: 'up', tail: 'hang' }, 0, 'locked-in').mouth;
 const MOUTH_X = (STAND_MOUTH[0] + 0.5 - SPRITE_W / 2) * PX; // snout tip, relative to sprite centre
@@ -116,7 +120,7 @@ export class Pet {
   // ---- DOM
   private scene: HTMLElement | null = null;
   private els: {
-    pet: HTMLElement; sprite: HTMLElement; svg: SVGElement; ball: HTMLElement; zzz: HTMLElement; bark: HTMLElement;
+    pet: HTMLElement; sprite: HTMLElement; svg: SVGElement; ball: HTMLElement; bed: HTMLElement; bedOver: HTMLElement; zzz: HTMLElement; bark: HTMLElement;
     close: HTMLElement; face: SVGElement; treat: HTMLElement;
     status: HTMLElement; petBtn: HTMLElement | null; treatBtn: HTMLElement | null;
   } | null = null;
@@ -139,7 +143,8 @@ export class Pet {
     scene.innerHTML = `
       <div class="yard">
         <div class="ground"></div>
-        <div class="toy-ball" hidden></div>
+        <div class="bed-spot">${bedSvg(PX)}</div>
+        <div class="toy-ball" hidden>${ballSvg(PX)}</div>
         <div class="pet">
           <div class="pet-sprite">
             <svg class="bo" viewBox="0 0 ${SPRITE_W} ${SPRITE_H}" width="${SW}" height="${SH}" shape-rendering="crispEdges"></svg>
@@ -148,6 +153,7 @@ export class Pet {
           </div>
           <div class="zzz"><i>Z</i><i>z</i><i>z</i></div>
         </div>
+        <div class="bed-spot bed-over" hidden>${bedFrontSvg(PX)}</div>
       </div>
       <div class="close">
         <svg class="face bo" viewBox="${c.x} ${c.y} ${c.w} ${c.h}" width="${c.w * FPX}" height="${c.h * FPX}" shape-rendering="crispEdges"></svg>
@@ -159,6 +165,8 @@ export class Pet {
       sprite: scene.querySelector('.pet-sprite')!,
       svg: scene.querySelector('.pet svg.bo')!,
       ball: scene.querySelector('.toy-ball')!,
+      bed: scene.querySelector('.bed-spot')!,
+      bedOver: scene.querySelector('.bed-over')!,
       zzz: scene.querySelector('.pet .zzz')!,
       bark: scene.querySelector('.bark-lines')!,
       close: scene.querySelector('.close')!,
@@ -335,13 +343,7 @@ export class Pet {
   private decide(): Act[] {
     const env = this.env();
     if (this.dozing()) {
-      const tired = [
-        this.walkTo(rand(this.W * 0.3, this.W * 0.7), 40, 'gettingSleepy'),
-        this.wait(1.2, 'yawn', '', 'yawning'),
-        this.wait(1, 'lie', '', 'gettingComfy'),
-        this.sleep(),
-      ];
-      return Math.abs(this.x - this.W / 2) < this.W * 0.35 ? tired.slice(1) : tired;
+      return [...this.toBed(40, 'gettingSleepy'), this.wait(1.2, 'yawn', '', 'yawning'), this.wait(1, 'lie', '', 'gettingComfy'), this.sleep()];
     }
     const entries = Object.entries(WEIGHTS[env.mood]) as [Behaviour, number][];
     let r = Math.random() * entries.reduce((a, [, w]) => a + w, 0);
@@ -404,7 +406,7 @@ export class Pet {
         return seq;
       }
       case 'rest':
-        return [this.wait(0.6, 'lie', '', 'lyingDown'), this.wait(rand(4, 9), 'lie', mood === 'sulking' ? 'droop' : 'wag', 'resting')];
+        return [...(chance(0.5) ? this.toBed(sp * 0.8, 'headingToBed') : []), this.wait(0.6, 'lie', '', 'lyingDown'), this.wait(rand(4, 9), 'lie', mood === 'sulking' ? 'droop' : 'wag', 'resting')];
       case 'scratch':
         return [this.wait(0.3, 'sit', ''), this.wait(1.5, 'scratch', '', 'scratching'), this.wait(0.5, 'shake', '', 'shakingItOff'), this.wait(1, 'sit', wag, 'chilling')];
       case 'yawn':
@@ -447,6 +449,27 @@ export class Pet {
         return false;
       },
     };
+  }
+
+  /** Where his bed is (its centre), tucked into the right side of the yard. */
+  private bedX() {
+    return this.W - (BED_W * PX) / 2 - 10;
+  }
+
+  /** Where he stands so his body lands in the bed, facing `dir`. */
+  private bedSpot(dir: 1 | -1) {
+    return this.bedX() - BODY_AHEAD * dir;
+  }
+
+  private inBed() {
+    return this.anim !== 'walk' && this.anim !== 'run' && Math.abs(this.x - this.bedSpot(this.facing)) < 6;
+  }
+
+  /** Walk over to the bed (nothing if he's already in it). */
+  private toBed(speed: number, label: StatusKey): Act[] {
+    if (this.inBed()) return [];
+    const dir: 1 | -1 = this.bedX() >= this.x ? 1 : -1;
+    return [this.walkTo(this.bedSpot(dir), speed, label), this.face(dir)];
   }
 
   private face(dir: 1 | -1): Act {
@@ -604,7 +627,7 @@ export class Pet {
     if (b.on) {
       if (b.carried) {
         b.x = this.x + this.facing * (this.mouth[0] + 0.5 - SPRITE_W / 2) * PX;
-        b.y = (SPRITE_H - this.mouth[1] - 2) * PX - 6;
+        b.y = (SPRITE_H - this.mouth[1] - 2) * PX + 1 - BALL_R;
       } else {
         b.vy -= GRAVITY * dt;
         b.x += b.vx * dt;
@@ -617,11 +640,11 @@ export class Pet {
           } else b.vy = 0;
         }
         if (b.y === 0) b.vx *= Math.pow(0.2, dt);
-        if (b.x < 8) {
-          b.x = 8;
+        if (b.x < BALL_R) {
+          b.x = BALL_R;
           b.vx = Math.abs(b.vx) * 0.6;
-        } else if (b.x > this.W - 8) {
-          b.x = this.W - 8;
+        } else if (b.x > this.W - BALL_R) {
+          b.x = this.W - BALL_R;
           b.vx = -Math.abs(b.vx) * 0.6;
         }
       }
@@ -974,7 +997,10 @@ export class Pet {
     }
     const b = this.ball;
     els.ball.hidden = !b.on;
-    if (b.on) els.ball.style.transform = `translate3d(${(b.x - 7).toFixed(1)}px, ${(-b.y).toFixed(1)}px, 0)`;
+    if (b.on) els.ball.style.transform = `translate3d(${(b.x - BALL_R).toFixed(1)}px, ${(-b.y).toFixed(1)}px, 0)`;
+    const bedLeft = `${(this.bedX() - (BED_W * PX) / 2).toFixed(0)}px`;
+    if (els.bed.style.left !== bedLeft) els.bed.style.left = els.bedOver.style.left = bedLeft;
+    els.bedOver.hidden = !this.inBed();
 
     // ---- close-up: the same sprite, zoomed in on his head
     if (this.view === 'close') {
