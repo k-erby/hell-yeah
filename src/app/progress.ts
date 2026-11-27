@@ -42,12 +42,22 @@ export const rankName = (id: (typeof RANKS)[number]['id']) => t(`ranks.${id}`);
 export const stageName = (id: (typeof DOG_STAGES)[number]['id']) => t(`dogStages.${id}.name`);
 export const stagePerk = (id: (typeof DOG_STAGES)[number]['id']) => t(`dogStages.${id}.perk`);
 
-export function moodFor(loyalty: number): Mood {
-  if (loyalty >= 85) return 'ride-or-die';
-  if (loyalty >= 65) return 'locked-in';
-  if (loyalty >= 45) return 'on-watch';
-  if (loyalty >= 25) return 'side-eye';
-  return 'sulking';
-}
+/**
+ * Moods by loyalty. Each one changes how the pet acts (src/pets/pet.ts → TRUST):
+ *   sulking      won't play, won't be petted
+ *   side-eye     ignores the ball, puts up with pets
+ *   on-watch     plays fetch sometimes
+ *   locked-in    always up for fetch
+ *   ride-or-die  zoomies, brings you the ball
+ */
+export const MOODS: readonly { mood: Mood; from: number }[] = [
+  { mood: 'sulking', from: 0 },
+  { mood: 'side-eye', from: 25 },
+  { mood: 'on-watch', from: 50 },
+  { mood: 'locked-in', from: 70 },
+  { mood: 'ride-or-die', from: 90 },
+];
+
+export const moodFor = (loyalty: number): Mood => ladder(MOODS, loyalty, (m) => m.from).cur.mood;
 
 export const moodName = (m: Mood) => t(`moods.${m}`);

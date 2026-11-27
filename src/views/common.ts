@@ -43,12 +43,10 @@ export const ICONS: Record<Tab, string> = {
 /** Rows for editing one routine. Every control carries data-mode so main.ts knows which list. */
 export function routineEditor(s: AppState, mode: Mode): string {
   const items = s.routines[mode];
-  const dog = s.profile.dogName;
   const rows = items
     .map(
       (it, i) => `<li class="edit-row">
       <input value="${esc(it.label)}" maxlength="60" data-change="rename" data-mode="${mode}" data-id="${it.id}" aria-label="${ta('editor.taskName')}">
-      <button class="icon-btn ${it.bo ? 'on' : ''}" data-action="toggle-bo" data-mode="${mode}" data-id="${it.id}" title="${ta('editor.dogTask', { dog })}">${esc(dog.slice(0, 3))}</button>
       <button class="icon-btn" data-action="move" data-mode="${mode}" data-id="${it.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="${ta('editor.moveUp')}">↑</button>
       <button class="icon-btn" data-action="move" data-mode="${mode}" data-id="${it.id}" data-dir="1" ${i === items.length - 1 ? 'disabled' : ''} aria-label="${ta('editor.moveDown')}">↓</button>
       <button class="icon-btn danger" data-action="del-item" data-mode="${mode}" data-id="${it.id}" aria-label="${ta('common.delete')}">×</button>

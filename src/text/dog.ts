@@ -6,15 +6,15 @@
  */
 export const dog = {
   title: '{dog}.',
-  tagline: 'Tap the yard to throw the ball. Hit PET to get up close and rub his face.',
+  tagline: 'Tap anywhere in the house to throw the ball. Hit PET to get up close and rub his face.',
   os: '{dog}-OS',
-  yardLabel: "{dog}'s yard. Tap to throw a ball, tap {dog} to pet.",
+  houseLabel: "{dog}'s house. Tap to throw a ball, tap {dog} to pet.",
   loyalty: 'LOYALTY',
 
   buttons: {
     ball: 'BALL',
     pet: 'PET',
-    yard: 'YARD',
+    house: 'HOUSE',
     treat: 'TREAT ×{n}',
     woof: 'WOOF',
   },
@@ -36,12 +36,12 @@ export const dog = {
   rulesTitle: 'Keep {dog} loyal',
   /** <b>bold</b> is fine in these. */
   rules: {
-    checkOff: '<b>Check things off.</b> Every task feeds {dog}. Finishing a full routine feeds him more.',
-    walks: "<b>{dog}'s walks count double.</b> Anything tagged {dog} gives +{bonus} bonus loyalty.",
-    bigMoves: '<b>Learn. Lock in. Master.</b> The bigger the move, the bigger the bond.',
-    treats: '<b>Earn treats.</b> +1 per finished routine, +1 for learning something, +2 for a weekly lock-in, +3 for mastering a skill.',
-    naps: "<b>Go quiet and he naps.</b> No tasks for {hours} hours and he's out cold. Do something to wake him up.",
-    ghosting: "<b>Ghost him and he notices.</b> Every full day you skip is −{decay} loyalty. Low loyalty, low effort. He'll mope and ignore the ball.",
+    checkOff: '<b>Everything counts.</b> Check-offs, learnings, lock-ins and skills all earn {dog}\'s trust.',
+    slow: "<b>Trust takes time.</b> {dog} warms up by {cap} loyalty a day, tops. No shortcuts.",
+    moods: "<b>Loyalty sets his mood.</b> Under 50 he ignores the ball. Over 70 he's playful. Over 90 he's yours.",
+    treats: "<b>Earn treats. Feed him daily.</b> Finish routines, learn, lock in. The first treat each day is his meal.",
+    naps: "<b>Go quiet and he naps.</b> No tasks for {hours} hours and he's out cold.",
+    ghosting: "<b>Ghost him and he notices.</b> Every full day you skip is −{decay} loyalty.",
     bond: "<b>Bond never drops.</b> It's lifetime. Enough of it and {dog} levels up.",
   },
 

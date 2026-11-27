@@ -1,4 +1,6 @@
 import { boSvg, SITTING, SLEEPING } from '../pets/dog/sprite';
+import { petNote, type PetNote } from '../pets/needs';
+import { iconSvg } from '../pets/props';
 import { monthName, prettyDay, today, weekDays, weekOf } from '../app/dates';
 import { t, ta, tn, list } from '../lib/i18n';
 import { moodFor, moodName, rankFor, rankName, stageFor } from '../app/progress';
@@ -6,6 +8,27 @@ import { checkedFor, currentSkill, isAsleep, streak } from '../app/state';
 import type { AppState } from '../app/types';
 import { MODES } from '../app/types';
 import { esc, PENCIL, pickBy, ring, routineEditor, type UI } from './common';
+
+/** The pet's one-line reminder or tip above the checklist (nothing when there's nothing to say). */
+function petStrip(s: AppState, note: PetNote | null): string {
+  if (!note) return '';
+  const pet = s.profile.dogName;
+  if (note.kind === 'tip') {
+    return `<section class="pet-note tip">
+      <span class="pet-bubble">${iconSvg(note.icon)}</span>
+      <p>${t(`pets.tips.${note.id}`, { pet })}</p>
+      <button class="btn small ghost" data-action="pet-tip" data-id="${note.id}">${t('pets.gotIt')}</button>
+    </section>`;
+  }
+  const line = note.id === 'hungry' ? tn('pets.needs.hungry', s.bo.treats, { pet }) : t(`pets.needs.${note.id}`, { pet });
+  const act = note.id === 'hungry' || note.id === 'play' ? `<button class="btn small primary" data-action="pet-need" data-id="${note.id}">${t(`pets.actions.${note.id}`)}</button>` : '';
+  return `<section class="pet-note">
+    <span class="pet-bubble">${iconSvg(note.icon)}</span>
+    <p>${line}</p>
+    ${act}
+    <button class="icon-btn" data-action="pet-quiet" data-id="${note.id}" aria-label="${ta('pets.notNow')}" title="${ta('pets.notNow')}">×</button>
+  </section>`;
+}
 
 export function todayView(s: AppState, ui: UI, timeMode: string): string {
   const day = today();
@@ -20,6 +43,7 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
   const stage = stageFor(s.bo.bond);
   const lines = list(`lines.${mode}`);
   const title = t(`modes.${mode}.title`);
+  const note = petNote(s, day);
 
   const segs = MODES.map((m) => {
     const its = s.routines[m];
@@ -39,7 +63,6 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
           return `<li><button class="check ${on ? 'on' : ''} ${pop ? 'pop' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${on}">
             <span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
             <span class="label">${esc(i.label)}</span>
-            ${i.bo ? `<span class="tag">${esc(s.profile.dogName)}</span>` : ''}
           </button></li>`;
         })
         .join('')
@@ -72,6 +95,7 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
         <p class="tagline">${esc(pickBy(lines, day + mode))}</p>
       </div>
       <button class="mini-bo mood-${mood}" data-action="tab" data-tab="bo" aria-label="${esc(s.profile.dogName)}: ${moodName(mood)}">
+        ${note ? `<span class="mini-bubble">${iconSvg(note.icon, 2)}</span>` : ''}
         <span class="lcd ${isAsleep(s) ? 'asleep' : ''}">${boSvg(stage.index, mood, stage.index === 0 ? 'pup' : '', isAsleep(s) ? SLEEPING : SITTING)}</span>
         <span class="mini-meter"><i style="width:${s.bo.loyalty}%"></i></span>
       </button>
@@ -86,6 +110,8 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
   </header>
 
   <nav class="seg" aria-label="${ta('today.routinePicker')}">${segs}</nav>
+
+  ${petStrip(s, note)}
 
   <section class="flip ${ui.flipped ? 'flipped' : ''}" id="routine-card">
     <div class="flip-inner">

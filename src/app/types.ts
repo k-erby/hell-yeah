@@ -12,8 +12,6 @@ export const METHODS: Method[] = ['practiced', 'taught', 'wrote', 'built'];
 export interface RoutineItem {
   id: string;
   label: string;
-  /** Bo-related tasks (walks etc.) give Bo bonus loyalty. */
-  bo?: boolean;
 }
 
 /** "Every DAY I learn something new." */
@@ -73,6 +71,17 @@ export interface AppState {
     settledThrough: string; // last day decay was processed for
     lastActiveAt: number; // ms timestamp of last task/learning; Bo naps if it's been a while
     treats: number; // earned by finishing routines / learning, spent on the Bo tab
+    /** Day loyalty was last gained, and how much that day (gains are capped per day). */
+    trustDay?: string;
+    trustToday?: number;
+    /** Last day he was fed (the first treat of a day is his meal). */
+    fedDay?: string;
+    /** Last day you opened his tab. */
+    visitDay?: string;
+    /** Reminders you waved off, and the day you did. They come back tomorrow. */
+    quiet?: { day: string; ids: string[] };
   };
+  /** One-time tips already shown. */
+  seenTips?: string[];
   settings: Settings;
 }

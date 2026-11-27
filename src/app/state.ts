@@ -5,14 +5,19 @@ import { list, tx } from '../lib/i18n';
 
 export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, level: 50, mastered: 300 };
 export const TREATS = { routine: 1, learning: 1, solidify: 2, mastered: 3 };
-export const LOY = { item: 1, routine: 4, boItem: 5, learning: 4, solidify: 8, mastered: 15, decay: 15 };
+/**
+ * Loyalty: 0-100, and it takes a while. He warms up at most `dailyCap` a day however much
+ * you do, and every fully missed day costs `decay`. A new pet starts at `start`.
+ * Roughly two weeks of showing up gets a new pet from wary to ride-or-die.
+ * How he behaves at each level: src/app/progress.ts (MOODS) and src/pets/pet.ts (TRUST).
+ */
+export const LOY = { start: 30, item: 1, routine: 2, learning: 2, solidify: 4, mastered: 6, meal: 1, dailyCap: 5, decay: 10 };
 
 export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
 
-/** Starter routines come from src/text/ui.ts. A task mentioning {dog} is a dog task. */
+/** Starter routines come from src/text/ui.ts. {dog} becomes the pet's name. */
 export function defaultRoutines(dogName = tx('defaults.dogName')): Record<Mode, RoutineItem[]> {
-  const make = (labels: string[]) =>
-    labels.map((l): RoutineItem => ({ id: uid(), label: l.replaceAll('{dog}', dogName), ...(l.includes('{dog}') ? { bo: true } : {}) }));
+  const make = (labels: string[]) => labels.map((l): RoutineItem => ({ id: uid(), label: l.replaceAll('{dog}', dogName) }));
   return {
     morning: make(list('defaults.routines.morning')),
     afternoon: make(list('defaults.routines.afternoon')),
@@ -32,7 +37,7 @@ export function defaultState(now = new Date()): AppState {
     skills: [],
     xp: 0,
     awarded: {},
-    bo: { loyalty: 60, bond: 0, settledThrough: addDays(t, -1), lastActiveAt: now.getTime(), treats: 3 },
+    bo: { loyalty: LOY.start, bond: 0, settledThrough: addDays(t, -1), lastActiveAt: now.getTime(), treats: 3 },
     settings: { fx: 'stupid', sound: true, haptics: true, theme: 'auto' },
   };
 }
@@ -47,7 +52,10 @@ export function normalize(raw: unknown): AppState {
     ...r,
     version: 1,
     profile: { ...d.profile, ...r.profile },
-    routines: { ...d.routines, ...r.routines },
+    // (Older saves tagged some tasks as dog tasks; that's gone, so keep just id + label.)
+    routines: Object.fromEntries(
+      Object.entries({ ...d.routines, ...r.routines }).map(([m, items]) => [m, items.map(({ id, label }) => ({ id, label }))]),
+    ) as AppState['routines'],
     days: r.days ?? {},
     learnings: r.learnings ?? [],
     solidifies: r.solidifies ?? [],
@@ -61,18 +69,26 @@ export function normalize(raw: unknown): AppState {
 
 // ---------- rewards ----------
 
-function gainLoyalty(s: AppState, n: number) {
-  s.bo.loyalty = Math.min(100, s.bo.loyalty + n);
+/** Bond always grows by the full amount; loyalty only by what's left of today's cap. */
+function gainLoyalty(s: AppState, n: number, day: string) {
   s.bo.bond += n;
+  if (s.bo.trustDay !== day) {
+    s.bo.trustDay = day;
+    s.bo.trustToday = 0;
+  }
+  const room = Math.max(0, LOY.dailyCap - (s.bo.trustToday ?? 0));
+  const gain = Math.min(n, room);
+  s.bo.trustToday = (s.bo.trustToday ?? 0) + gain;
+  s.bo.loyalty = Math.min(100, s.bo.loyalty + gain);
 }
 
 /** Award XP + loyalty once per key. Returns true if newly awarded. */
-function award(s: AppState, key: string, xp: number, loyalty: number): boolean {
+function award(s: AppState, key: string, xp: number, loyalty: number, day: string): boolean {
   s.bo.lastActiveAt = Date.now(); // any real action wakes Bo up
   if (s.awarded[key]) return false;
   s.awarded[key] = 1;
   s.xp += xp;
-  gainLoyalty(s, loyalty);
+  gainLoyalty(s, loyalty, day);
   return true;
 }
 
@@ -98,10 +114,9 @@ export function toggleItem(s: AppState, mode: Mode, itemId: string, day = today(
     return { checked: false, routineDone: false };
   }
   list.push(itemId);
-  const it = s.routines[mode].find((i) => i.id === itemId);
-  award(s, `item:${day}:${mode}:${itemId}`, XP.item, LOY.item + (it?.bo ? LOY.boItem : 0));
+  award(s, `item:${day}:${mode}:${itemId}`, XP.item, LOY.item, day);
   const routineDone = isRoutineDone(s, mode, day);
-  if (routineDone && award(s, `routine:${day}:${mode}`, XP.routine, LOY.routine)) s.bo.treats += TREATS.routine;
+  if (routineDone && award(s, `routine:${day}:${mode}`, XP.routine, LOY.routine, day)) s.bo.treats += TREATS.routine;
   return { checked: true, routineDone };
 }
 
@@ -110,7 +125,7 @@ export function toggleItem(s: AppState, mode: Mode, itemId: string, day = today(
 export function addLearning(s: AppState, text: string, branch: Branch, skillId?: string, day = today()): Learning {
   const l: Learning = { id: uid(), date: day, text, branch, ...(skillId ? { skillId } : {}) };
   s.learnings.push(l);
-  if (award(s, `learn:${day}`, XP.learning, LOY.learning)) s.bo.treats += TREATS.learning;
+  if (award(s, `learn:${day}`, XP.learning, LOY.learning, day)) s.bo.treats += TREATS.learning;
   return l;
 }
 
@@ -135,7 +150,7 @@ export function addSolidify(s: AppState, text: string, method: Method, learningI
     ...(learningId ? { learningId } : {}),
     ...(skillId ? { skillId } : {}),
   });
-  if (award(s, `solid:${week}`, XP.solidify, LOY.solidify)) s.bo.treats += TREATS.solidify;
+  if (award(s, `solid:${week}`, XP.solidify, LOY.solidify, day)) s.bo.treats += TREATS.solidify;
 }
 
 export function startSkill(s: AppState, name: string, branch: Branch, day = today()): Skill {
@@ -148,7 +163,7 @@ export function startSkill(s: AppState, name: string, branch: Branch, day = toda
   }
   const sk: Skill = { id: uid(), name, branch, month, status: 'active' };
   s.skills.push(sk);
-  award(s, `skill:${month}`, XP.skillStart, 0);
+  award(s, `skill:${month}`, XP.skillStart, 0, day);
   return sk;
 }
 
@@ -170,8 +185,8 @@ export function setSkillLevel(s: AppState, id: string, level: number, day = toda
   const lvl = Math.max(0, Math.min(MAX_LEVEL, Math.round(level)));
   for (let n = 1; n <= lvl; n++) {
     if (n === MAX_LEVEL) {
-      if (award(s, `mastered:${id}`, XP.mastered, LOY.mastered)) s.bo.treats += TREATS.mastered;
-    } else award(s, `level:${id}:${n}`, XP.level, LOY.item);
+      if (award(s, `mastered:${id}`, XP.mastered, LOY.mastered, day)) s.bo.treats += TREATS.mastered;
+    } else award(s, `level:${id}:${n}`, XP.level, LOY.item, day);
   }
   sk.level = lvl;
   if (lvl === MAX_LEVEL) {
@@ -261,14 +276,23 @@ export function settle(s: AppState, day = today()): number {
   return missed;
 }
 
-/** Spend a treat on Bo. Small loyalty bump; doesn't count as "activity" so it can't stop his naps. */
-export function feedTreat(s: AppState): boolean {
+/**
+ * Give the pet a treat. The first one each day is his meal (a little loyalty);
+ * extras are just for fun (bond only). Doesn't count as "activity", so it can't stop his naps.
+ */
+export function feedTreat(s: AppState, day = today()): boolean {
   if (s.bo.treats <= 0) return false;
   s.bo.treats--;
-  s.bo.loyalty = Math.min(100, s.bo.loyalty + 2);
-  s.bo.bond += 2;
+  if (s.bo.fedDay !== day) {
+    s.bo.fedDay = day;
+    gainLoyalty(s, LOY.meal, day);
+  } else s.bo.bond += 1;
   return true;
 }
+
+export const fedToday = (s: AppState, day = today()) => s.bo.fedDay === day;
+/** Loyalty gained so far today (out of LOY.dailyCap). */
+export const trustToday = (s: AppState, day = today()) => (s.bo.trustDay === day ? (s.bo.trustToday ?? 0) : 0);
 
 /** Bo naps when you haven't done anything for a while. */
 export const NAP_HOURS = 3;

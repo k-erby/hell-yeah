@@ -106,7 +106,6 @@ export const ui = {
   /** The edit side of a routine card. */
   editor: {
     taskName: 'Task name',
-    dogTask: '{dog} task (bonus loyalty)',
     moveUp: 'Move up',
     moveDown: 'Move down',
     empty: 'Empty. Add something below.',

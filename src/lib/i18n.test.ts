@@ -3,6 +3,7 @@ import { list, setLocale, t, tn, tx, type Messages } from './i18n';
 import { DOG_STAGES, RANKS } from '../app/progress';
 import { defaultRoutines, SKILL_LEVELS } from '../app/state';
 import { dog } from '../text/dog';
+import { pets } from '../text/pets';
 import { ui } from '../text/ui';
 import { vibe } from '../text/vibe';
 
@@ -11,7 +12,7 @@ function* walk(o: unknown, path = ''): Generator<[string, unknown]> {
   if (typeof o === 'string' || Array.isArray(o)) yield [path, o];
   else if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) yield* walk(v, path ? `${path}.${k}` : k);
 }
-const all = [...walk({ ...ui, dog, ...vibe })];
+const all = [...walk({ ...ui, dog, pets, ...vibe })];
 
 describe('text files (src/text)', () => {
   it('has no empty text', () => {
@@ -65,23 +66,22 @@ describe('t()', () => {
   });
 
   it('uses another language when set', () => {
-    const fake = structuredClone({ ...ui, dog, ...vibe }) as Messages;
+    const fake = structuredClone({ ...ui, dog, pets, ...vibe }) as Messages;
     fake.learn.plant.button = 'Planter';
     fake.learn.history.count = { one: '{n} chose', many: '{n} de choses', other: '{n} choses' };
     setLocale('fr', fake);
     expect(t('learn.plant.button')).toBe('Planter');
     expect(tn('learn.history.count', 1)).toBe('1 chose');
     expect(tn('learn.history.count', 2)).toBe('2 choses');
-    setLocale('en', { ...ui, dog, ...vibe } as Messages);
+    setLocale('en', { ...ui, dog, pets, ...vibe } as Messages);
     expect(list('boomWords').length).toBeGreaterThan(0);
   });
 });
 
 describe('starter routines', () => {
-  it('fills in the dog name and tags dog tasks', () => {
+  it('fills in the dog name', () => {
     const r = defaultRoutines('Rex');
-    const walk = r.morning.find((i) => i.label === 'Walk Rex');
-    expect(walk?.bo).toBe(true);
-    expect(r.morning.find((i) => i.label === 'Make the bed')?.bo).toBeUndefined();
+    expect(r.morning.some((i) => i.label === 'Walk Rex')).toBe(true);
+    expect(JSON.stringify(r)).not.toContain('{dog}');
   });
 });

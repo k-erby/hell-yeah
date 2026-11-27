@@ -9,6 +9,7 @@ import { bigFx, hitFx, itemFx, sfx } from '../effects/fx';
 import { t, tx } from '../lib/i18n';
 import { ideaUrl } from '../lib/ideas';
 import { esc } from '../views/common';
+import { tipsCoveredBy, type TipId } from '../pets/needs';
 import { applyTheme, pet, render } from '../views/render';
 import { moodFor, rankFor, rankName, stageFor, stageName, stagePerk } from './progress';
 import { fxo, save, session, ui } from './session';
@@ -45,6 +46,10 @@ export function handleAction(action: string, el: HTMLElement) {
   switch (action) {
     case 'tab': {
       ui.tab = el.dataset.tab as Tab;
+      if (ui.tab === 'bo' && s.bo.visitDay !== session.day) {
+        s.bo.visitDay = session.day;
+        save();
+      }
       if (ui.tab !== 'tree') ui.selectedSkill = undefined;
       render();
       window.scrollTo({ top: 0 });
@@ -111,6 +116,26 @@ export function handleAction(action: string, el: HTMLElement) {
       render();
       if (ui.selectedSkill) document.querySelector('.tree-card + .card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       break;
+    // ---- the pet's reminder strip on Today
+    case 'pet-need': {
+      // Go see the pet and do the thing: feed him, or throw the ball.
+      ui.tab = 'bo';
+      s.bo.visitDay = session.day;
+      save();
+      render();
+      window.scrollTo({ top: 0 });
+      setTimeout(() => (id === 'hungry' ? pet.giveTreat() : pet.throwBall()), 450);
+      break;
+    }
+    case 'pet-quiet':
+      commit(() => {
+        const ids = s.bo.quiet?.day === session.day ? s.bo.quiet.ids : [];
+        s.bo.quiet = { day: session.day, ids: [...ids, id] };
+      });
+      break;
+    case 'pet-tip':
+      commit(() => (s.seenTips = [...new Set([...(s.seenTips ?? []), ...tipsCoveredBy(id as TipId)])]));
+      break;
     case 'pet-ball':
       pet.throwBall();
       break;
@@ -148,12 +173,6 @@ export function handleAction(action: string, el: HTMLElement) {
           }),
         );
       }
-      break;
-    case 'toggle-bo':
-      commit(() => {
-        const it = s.routines[el.dataset.mode as Mode].find((i) => i.id === id);
-        if (it) it.bo = !it.bo;
-      });
       break;
     case 'move':
       commit(() => {

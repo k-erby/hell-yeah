@@ -2,14 +2,14 @@ import { bbox, build, frameInner, SITTING, SPRITE_H, SPRITE_W, type HeadV, type 
 import { sfx } from '../effects/fx';
 import type { Mood } from '../app/types';
 import { tx } from '../lib/i18n';
-import { ballSvg, BALL_W, bedFrontSvg, bedSvg, BED_W } from './props';
+import { ballSvg, BALL_W, bedFrontSvg, bedSvg, BED_W, bowlSvg, shelfSvg, trunkSvg } from './props';
 import type { dog } from '../text/dog';
 
 type StatusKey = keyof typeof dog.status;
 
 /* ============================================================
    Bo, the pocket pet. A tiny behaviour engine with two views:
-   - YARD: Bo roams on his own. Tap the yard to throw a ball, tap him to pet.
+   - HOUSE: Bo roams on his own. Tap the house to throw a ball, tap him to pet.
    - CLOSE: zoomed in on the same sprite. Rub him, boop his nose, feed treats.
    Bo runs one "act" at a time; each act sets an animation ("anim") that is
    turned into sprite frames over time. When he runs out of acts he picks a
@@ -22,6 +22,12 @@ export interface PetEnv {
   asleep: boolean;
   sound: boolean;
   treats: number;
+  /** Streak in days; fills the toy trunk. */
+  streak: number;
+  /** Fed today? (food bowl full or empty) */
+  fed: boolean;
+  /** This month's skill, for the flower pot (null = nothing planted). */
+  plant: { month: string; level: number } | null;
 }
 export interface PetHooks {
   /** Spend a treat. Returns false if there are none. */
@@ -42,7 +48,7 @@ interface Act {
   exit?(): void;
 }
 
-const PX = 4; // yard: screen px per sprite pixel
+const PX = 4; // house: screen px per sprite pixel
 const SW = SPRITE_W * PX;
 const SH = SPRITE_H * PX;
 const FPX = 11; // close-up: screen px per sprite pixel
@@ -68,6 +74,18 @@ type Behaviour =
   | 'wander' | 'idle' | 'exit' | 'zoomies' | 'chase-tail' | 'bark' | 'sniff' | 'ball'
   | 'rest' | 'scratch' | 'dig' | 'yawn' | 'pant' | 'tilt' | 'stretch';
 
+/**
+ * How much he'll engage with you at each mood (moods come from loyalty: src/app/progress.ts → MOODS).
+ * fetch = chance he chases a ball you throw · pets = chance he lets you pet him in the house.
+ */
+const TRUST: Record<Mood, { fetch: number; pets: number }> = {
+  sulking: { fetch: 0, pets: 0 },
+  'side-eye': { fetch: 0, pets: 0.6 },
+  'on-watch': { fetch: 0.6, pets: 1 },
+  'locked-in': { fetch: 1, pets: 1 },
+  'ride-or-die': { fetch: 1, pets: 1 },
+};
+
 const WEIGHTS: Record<Mood, Partial<Record<Behaviour, number>>> = {
   'ride-or-die': { wander: 3, idle: 1, pant: 1.5, exit: 1, zoomies: 2, 'chase-tail': 1.5, bark: 1, sniff: 1, ball: 2.5, dig: 1, tilt: 1, rest: 0.5, scratch: 0.6, stretch: 0.6 },
   'locked-in': { wander: 3, idle: 1.5, pant: 1, exit: 1, zoomies: 1, 'chase-tail': 1, bark: 1, sniff: 1.5, ball: 2, dig: 1, tilt: 1, rest: 1, scratch: 0.8, yawn: 0.5, stretch: 0.6 },
@@ -78,9 +96,9 @@ const WEIGHTS: Record<Mood, Partial<Record<Behaviour, number>>> = {
 const SPEED: Record<Mood, number> = { 'ride-or-die': 1.15, 'locked-in': 1, 'on-watch': 0.9, 'side-eye': 0.8, sulking: 0.6 };
 
 export class Pet {
-  view: 'yard' | 'close' = 'yard';
+  view: 'house' | 'close' = 'house';
 
-  // ---- yard world
+  // ---- house world
   private W = 300;
   private x = 150;
   private facing: 1 | -1 = 1;
@@ -120,11 +138,14 @@ export class Pet {
   // ---- DOM
   private scene: HTMLElement | null = null;
   private els: {
-    pet: HTMLElement; sprite: HTMLElement; svg: SVGElement; ball: HTMLElement; bed: HTMLElement; bedOver: HTMLElement; zzz: HTMLElement; bark: HTMLElement;
+    pet: HTMLElement; sprite: HTMLElement; svg: SVGElement; ball: HTMLElement; bed: HTMLElement; bedOver: HTMLElement; trunk: HTMLElement; shelf: HTMLElement; bowl: HTMLElement; zzz: HTMLElement; bark: HTMLElement;
     close: HTMLElement; face: SVGElement; treat: HTMLElement;
     status: HTMLElement; petBtn: HTMLElement | null; treatBtn: HTMLElement | null;
   } | null = null;
   private svgKey = '';
+  private trunkKey = '';
+  private shelfKey = '';
+  private bowlKey = '';
   private faceKey = '';
   private raf = 0;
   private last = 0;
@@ -141,8 +162,11 @@ export class Pet {
     this.scene = scene;
     const c = CLOSE_CROP;
     scene.innerHTML = `
-      <div class="yard">
+      <div class="house">
         <div class="ground"></div>
+        <div class="trunk-spot"></div>
+        <div class="shelf-spot"></div>
+        <div class="bowl-spot"></div>
         <div class="bed-spot">${bedSvg(PX)}</div>
         <div class="toy-ball" hidden>${ballSvg(PX)}</div>
         <div class="pet">
@@ -167,6 +191,9 @@ export class Pet {
       ball: scene.querySelector('.toy-ball')!,
       bed: scene.querySelector('.bed-spot')!,
       bedOver: scene.querySelector('.bed-over')!,
+      trunk: scene.querySelector('.trunk-spot')!,
+      shelf: scene.querySelector('.shelf-spot')!,
+      bowl: scene.querySelector('.bowl-spot')!,
       zzz: scene.querySelector('.pet .zzz')!,
       bark: scene.querySelector('.bark-lines')!,
       close: scene.querySelector('.close')!,
@@ -176,7 +203,7 @@ export class Pet {
       petBtn: document.getElementById('pet-mode-btn'),
       treatBtn: document.getElementById('pet-treat-btn'),
     };
-    this.svgKey = this.faceKey = '';
+    this.svgKey = this.faceKey = this.trunkKey = this.shelfKey = this.bowlKey = '';
     const w = scene.clientWidth || 300;
     this.x = (this.x / this.W) * w;
     this.W = w;
@@ -193,7 +220,7 @@ export class Pet {
     scene.addEventListener('pointercancel', this.onCancel);
     if (this.hype) {
       this.hype = false;
-      this.view = 'yard';
+      this.view = 'house';
       this.interrupt(this.zoomies());
     }
     this.last = performance.now();
@@ -224,16 +251,16 @@ export class Pet {
   // =========================================================
 
   toggleView() {
-    this.setView(this.view === 'yard' ? 'close' : 'yard');
+    this.setView(this.view === 'house' ? 'close' : 'house');
   }
 
   throwBall(tx = rand(this.W * 0.1, this.W * 0.9)) {
-    this.setView('yard');
+    this.setView('house');
     const fromX = this.W / 2;
     this.ball = { on: true, x: fromX, y: 160, vx: (tx - fromX) / 0.75, vy: 120, carried: false };
     if (this.sleeping) return; // sleeps right through it
     const { mood } = this.env();
-    if ((mood === 'sulking' && chance(0.5)) || (mood === 'side-eye' && chance(0.25))) {
+    if (!chance(TRUST[mood].fetch)) {
       this.interrupt([this.watchBall(0.9, false), this.turnAway(), this.wait(2, 'lie', 'droop', 'notInterested')]);
       return;
     }
@@ -261,7 +288,7 @@ export class Pet {
     this.cInterrupt(this.cTreatSeq());
   }
 
-  private setView(v: 'yard' | 'close') {
+  private setView(v: 'house' | 'close') {
     if (v === this.view) return;
     this.view = v;
     if (v === 'close') {
@@ -278,7 +305,7 @@ export class Pet {
     const dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
     this.animT += dt;
-    this.stepYard(dt);
+    this.stepHouse(dt);
     if (this.view === 'close') this.stepClose(dt);
     this.draw();
     this.raf = requestAnimationFrame(this.loop);
@@ -301,8 +328,8 @@ export class Pet {
     }
   }
 
-  private stepYard(dt: number) {
-    if (this.view === 'yard') this.run(dt, () => this.act, (a) => (this.act = a), this.queue, () => this.decide());
+  private stepHouse(dt: number) {
+    if (this.view === 'house') this.run(dt, () => this.act, (a) => (this.act = a), this.queue, () => this.decide());
     this.physics(dt);
     this.barking = Math.max(0, this.barking - dt);
     if (this.hop) this.hopY = Math.abs(Math.sin(performance.now() / 110)) * 10;
@@ -416,7 +443,7 @@ export class Pet {
     }
   }
 
-  // ---------- yard acts ----------
+  // ---------- house acts ----------
 
   private wait(sec: number, anim: Anim, tail: Tail = '', label: StatusKey = 'chilling', opts: { tilt?: boolean; hop?: boolean } = {}): Act {
     let t = 0;
@@ -451,7 +478,7 @@ export class Pet {
     };
   }
 
-  /** Where his bed is (its centre), tucked into the right side of the yard. */
+  /** Where his bed is (its centre), tucked into the right side of the house. */
   private bedX() {
     return this.W - (BED_W * PX) / 2 - 10;
   }
@@ -657,7 +684,7 @@ export class Pet {
   }
 
   /** Turn the current animation + time into a sprite frame. */
-  private yardSpec(mood: Mood): Spec {
+  private houseSpec(mood: Mood): Spec {
     const t = this.animT;
     const step = (rate: number, n: number) => Math.floor(t / rate) % n;
     const wagRate = this.tail === 'wag-fast' ? 0.09 : this.tail === 'wag' ? 0.2 : 0;
@@ -913,22 +940,22 @@ export class Pet {
     }
     const p = this.local(e);
     if (this.view === 'close') this.closeTap(p.x, p.y);
-    else this.yardTap(p.x, p.fromBottom);
+    else this.houseTap(p.x, p.fromBottom);
   };
 
   private onCancel = () => {
     this.down = null;
   };
 
-  private yardTap(x: number, fromBottom: number) {
+  private houseTap(x: number, fromBottom: number) {
     const onBo = Math.abs(x - this.x) < SW * 0.35 && fromBottom > GROUND && fromBottom < GROUND + SH * 0.85;
-    if (onBo) this.patYard();
+    if (onBo) this.patHouse();
     else this.throwBall(Math.min(Math.max(x, 12), this.W - 12));
   }
 
-  private patYard() {
+  private patHouse() {
     if (this.wakeIfSleeping()) return;
-    if (this.env().mood === 'sulking') {
+    if (!chance(TRUST[this.env().mood].pets)) {
       this.interrupt([this.turnAway(), this.wait(1.8, 'lie', 'droop', 'tolerating')]);
       return;
     }
@@ -974,9 +1001,16 @@ export class Pet {
     const env = this.env();
     this.scene.classList.toggle('is-close', this.view === 'close');
 
-    // ---- yard
-    const spec = this.yardSpec(env.mood);
+    // ---- house
+    const spec = this.houseSpec(env.mood);
     const key = `${JSON.stringify(spec)}|${env.stage}|${env.mood}`;
+    // Props only redraw when what they show changes.
+    const trunkKey = String(env.streak);
+    if (trunkKey !== this.trunkKey) els.trunk.innerHTML = trunkSvg(PX, env.streak), (this.trunkKey = trunkKey);
+    const shelfKey = JSON.stringify(env.plant);
+    if (shelfKey !== this.shelfKey) els.shelf.innerHTML = shelfSvg(PX, env.plant), (this.shelfKey = shelfKey);
+    const bowlKey = String(env.fed);
+    if (bowlKey !== this.bowlKey) els.bowl.innerHTML = bowlSvg(PX, env.fed), (this.bowlKey = bowlKey);
     if (key !== this.svgKey) {
       this.svgKey = key;
       const b = build(spec, env.stage, env.mood);
@@ -1039,7 +1073,7 @@ export class Pet {
     const text = label ? tx(`dog.status.${label}`).toLocaleUpperCase() : '';
     if (els.status.textContent !== text) els.status.textContent = text;
     if (els.petBtn) {
-      const t = tx(this.view === 'close' ? 'dog.buttons.yard' : 'dog.buttons.pet');
+      const t = tx(this.view === 'close' ? 'dog.buttons.house' : 'dog.buttons.pet');
       if (els.petBtn.textContent !== t) els.petBtn.textContent = t;
     }
     if (els.treatBtn) {

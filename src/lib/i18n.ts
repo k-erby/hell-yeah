@@ -12,10 +12,11 @@
  * Another language later = another folder with the same shape (Messages), passed to setLocale().
  */
 import { dog } from '../text/dog';
+import { pets } from '../text/pets';
 import { ui } from '../text/ui';
 import { vibe } from '../text/vibe';
 
-const en = { ...ui, dog, ...vibe };
+const en = { ...ui, dog, pets, ...vibe };
 
 // ---------- types
 

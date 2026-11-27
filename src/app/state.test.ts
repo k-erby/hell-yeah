@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addDays, today, weekOf, weekDays } from './dates';
 import {
   addLearning, addSolidify, bestStreak, defaultState, finishSkill, isRoutineDone,
-  feedTreat, LOY, MAX_LEVEL, normalize, setSkillLevel, TREATS, settle, skillStats, startSkill, streak, toggleItem, XP,
+  feedTreat, fedToday, LOY, MAX_LEVEL, normalize, setSkillLevel, TREATS, settle, skillStats, startSkill, streak, toggleItem, XP,
 } from './state';
 
 const D = '2026-11-25'; // a Wednesday
@@ -41,12 +41,32 @@ describe('routines', () => {
     expect(isRoutineDone(s, 'afternoon', D)).toBe(true);
     expect(s.xp).toBe(XP.item * s.routines.afternoon.length + XP.routine);
   });
-  it('Bo items give bonus loyalty', () => {
+  it('loyalty grows slowly: capped per day, bond keeps the full amount', () => {
     const s = defaultState();
-    const walk = s.routines.morning.find((i) => i.bo)!;
-    const before = s.bo.bond;
-    toggleItem(s, 'morning', walk.id, D);
-    expect(s.bo.bond - before).toBe(LOY.item + LOY.boItem);
+    const start = s.bo.loyalty;
+    const bond0 = s.bo.bond;
+    for (const it of s.routines.morning) toggleItem(s, 'morning', it.id, D);
+    addLearning(s, 'x', 'mind', undefined, D);
+    expect(s.bo.loyalty - start).toBe(LOY.dailyCap);
+    expect(s.bo.bond - bond0).toBe(LOY.item * s.routines.morning.length + LOY.routine + LOY.learning);
+    toggleItem(s, 'afternoon', s.routines.afternoon[0].id, addDays(D, 1));
+    expect(s.bo.loyalty - start).toBe(LOY.dailyCap + LOY.item); // new day, new room
+  });
+  it('the first treat of the day is a meal', () => {
+    const s = defaultState();
+    s.bo.treats = 3;
+    const start = s.bo.loyalty;
+    expect(fedToday(s, D)).toBe(false);
+    feedTreat(s, D);
+    expect(fedToday(s, D)).toBe(true);
+    expect(s.bo.loyalty - start).toBe(LOY.meal);
+    feedTreat(s, D); // seconds: bond only
+    expect(s.bo.loyalty - start).toBe(LOY.meal);
+    expect(s.bo.treats).toBe(1);
+  });
+  it('drops the old dog-task tag from saves', () => {
+    const s = normalize({ routines: { morning: [{ id: 'a', label: 'Walk Bo', bo: true }] } });
+    expect(s.routines.morning[0]).toEqual({ id: 'a', label: 'Walk Bo' });
   });
 });
 

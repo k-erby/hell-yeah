@@ -1,11 +1,12 @@
 import { moodFor, stageFor } from '../app/progress';
 import { save, session, ui } from '../app/session';
-import { feedTreat, isAsleep } from '../app/state';
+import { monthOf } from '../app/dates';
+import { fedToday, feedTreat, isAsleep, skillLevel, streak } from '../app/state';
 import type { Mode, Tab } from '../app/types';
 import { t, type TextKey } from '../lib/i18n';
 import { Pet } from '../pets/pet';
 import { esc, ICONS } from './common';
-import { dogView } from './dog';
+import { dogView, petStatus } from './dog';
 import { learnView } from './learn';
 import { moreView } from './more';
 import { todayView } from './today';
@@ -13,6 +14,21 @@ import { treeView } from './tree';
 
 const view = document.getElementById('view')!;
 const nav = document.getElementById('nav')!;
+
+/** This month's skill as a plant: how far along it is. Dropped skills leave the pot empty. */
+function monthPlant() {
+  const month = monthOf(session.day);
+  const sk = session.s.skills.find((k) => k.month === month && k.status !== 'dropped');
+  return sk ? { month, level: skillLevel(sk) } : null;
+}
+
+/** The pet asks for these every frame; they only change on a tap, so work them out every couple of seconds. */
+let houseCache = { at: 0, streak: 0, plant: null as ReturnType<typeof monthPlant> };
+function house() {
+  const now = performance.now();
+  if (now - houseCache.at > 2000) houseCache = { at: now, streak: streak(session.s, session.day), plant: monthPlant() };
+  return houseCache;
+}
 
 /** The animated dog on the dog tab. */
 export const pet = new Pet(
@@ -22,16 +38,21 @@ export const pet = new Pet(
     asleep: isAsleep(session.s),
     sound: session.s.settings.sound,
     treats: session.s.bo.treats,
+    streak: house().streak,
+    plant: house().plant,
+    fed: fedToday(session.s, session.day),
   }),
   {
     onTreat: () => {
-      if (!feedTreat(session.s)) return false;
+      if (!feedTreat(session.s, session.day)) return false;
       save();
       // Update the loyalty meter in place so the pet scene keeps running.
       const meter = document.querySelector<HTMLElement>('.device .meter i');
       if (meter) meter.style.width = `${session.s.bo.loyalty}%`;
       const pct = document.querySelector('.device .meter-head span:last-child');
       if (pct) pct.textContent = `${Math.round(session.s.bo.loyalty)}%`;
+      const status = document.getElementById('pet-status');
+      if (status) status.innerHTML = petStatus(session.s, session.day);
       return true;
     },
   },

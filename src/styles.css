@@ -195,7 +195,6 @@ b { font-weight: 700; color: var(--text); }
 @keyframes draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 @keyframes strike { from { background-size: 0% 2px; } to { background-size: 100% 2px; } }
 @keyframes row-pop { 0% { box-shadow: 0 0 0 0 var(--glow); } 100% { box-shadow: 0 0 0 18px transparent; } }
-.tag { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 3px 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--accent); }
 .empty { color: var(--muted); padding: 10px 0; }
 .link { border: 0; background: none; color: var(--accent); font-weight: 700; padding: 0; text-decoration: underline; }
 
@@ -212,6 +211,32 @@ b { font-weight: 700; color: var(--text); }
 .head-right { display: flex; align-items: center; gap: 10px; }
 .face-back .editor { margin-top: 0; }
 .face-back form { margin-bottom: 8px; }
+
+/* ---------- pet reminder strip + bubble (src/pets/needs.ts) ---------- */
+.pet-note {
+  display: flex; align-items: center; gap: 12px; margin: -2px 0 14px; padding: 10px 10px 10px 12px;
+  border-radius: 16px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; color: var(--muted);
+  animation: note-in .35s cubic-bezier(.2,1.3,.4,1);
+}
+.pet-note p { flex: 1; margin: 0; line-height: 1.35; }
+.pet-note p b { color: var(--text); }
+.pet-note.tip { border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 18px var(--glow); }
+.pet-note .btn { flex: none; min-height: 36px; padding: 6px 14px; }
+.pet-note .icon-btn { flex: none; }
+.pet-bubble {
+  flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 14px 14px 14px 4px;
+  background: var(--surface2); border: 1px solid var(--line);
+}
+.mini-bo { position: relative; }
+.mini-bubble {
+  position: absolute; top: -12px; left: -12px; z-index: 1; display: grid; place-items: center; width: 28px; height: 26px;
+  border-radius: 12px 12px 4px 12px; background: var(--bg2); border: 1px solid var(--accent); box-shadow: 0 0 12px var(--glow);
+  animation: bubble-in .4s cubic-bezier(.2,1.6,.4,1), bubble-bob 2.4s ease-in-out .4s infinite;
+}
+@keyframes note-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes bubble-in { from { scale: 0; } }
+@keyframes bubble-bob { 50% { translate: 0 -2px; } }
+@media (prefers-reduced-motion: reduce) { .pet-note, .mini-bubble { animation: none; } }
 
 /* ---------- nudges ---------- */
 .nudges { display: grid; gap: 8px; }
@@ -386,7 +411,7 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 }
 .dbtn:active { transform: translateY(3px); box-shadow: 0 1px 0 #5a4214, 0 3px 8px rgba(0,0,0,.5); }
 
-/* ---------- Bo's yard ---------- */
+/* ---------- Bo's house ---------- */
 .scene.is-close { touch-action: none; }
 .scene { position: absolute; inset: 0; overflow: hidden; touch-action: manipulation; cursor: pointer; user-select: none; -webkit-user-select: none; }
 .ground {
@@ -439,6 +464,57 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .ball .r { fill: #ff614d; }
 .ball .d { fill: #b8392b; }
 
+/* Toy trunk (left) and shelf with this month's flower (above the bed). */
+.trunk-spot { position: absolute; left: 6px; bottom: 14px; pointer-events: none; }
+.shelf-spot { position: absolute; right: 42px; bottom: 118px; pointer-events: none; }
+.trunk .n, .shelf .n { fill: #3a2210; }
+.trunk .h, .shelf .h { fill: #b07a45; }
+.trunk .m, .shelf .m { fill: #8a5a2e; }
+.trunk .s, .shelf .s { fill: #6a4220; }
+.trunk .b { fill: color-mix(in srgb, var(--accent) 45%, #3a2210); }
+.trunk .g { fill: var(--accent); }
+.trunk .k { fill: #3a2210; }
+/* toys: each outlined in a dark version of its own colour */
+.trunk .E { fill: #5c6b12; } .trunk .e { fill: #c9e340; } .trunk .v { fill: #fff8e8; }
+.trunk .O { fill: #8c7a58; } .trunk .o { fill: #f4ead2; }
+.trunk .Y { fill: #8f6b00; } .trunk .y { fill: #ffd43b; } .trunk .q { fill: #ff8a2b; } .trunk .K { fill: #3a2a00; }
+.trunk .U { fill: #1f3f7a; } .trunk .u { fill: #4d8dff; }
+.trunk .F { fill: #7a1d47; } .trunk .f { fill: #ff5fa2; }
+/* pot + plant */
+.shelf .P { fill: #6b2a14; } .shelf .p { fill: #c8643c; } .shelf .l { fill: #e48d5f; }
+.shelf .G { fill: #23561a; } .shelf .g { fill: #5fbf4a; } .shelf .L { fill: #9be675; }
+.shelf .A { fill: var(--petal-o); } .shelf .a { fill: var(--petal); } .shelf .c { fill: var(--centre); }
+/* food bowl: the theme colour, kibble once he's eaten */
+.bowl-spot { position: absolute; right: 158px; bottom: 14px; pointer-events: none; }
+.bowl .n { fill: color-mix(in srgb, var(--accent) 32%, #000); } .bowl .h { fill: var(--accent2); }
+.bowl .m { fill: var(--accent); } .bowl .s { fill: color-mix(in srgb, var(--accent) 60%, #000); }
+.bowl .k { fill: #b8743a; } .bowl .K { fill: #7a4519; }
+
+/* "How {pet}'s doing" card on the pet page */
+.status-list { display: grid; gap: 4px; }
+.status-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.status-row:first-child { border-top: 0; padding-top: 0; }
+.status-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); font-weight: 700; }
+.status-top b { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; }
+.status-row small { display: flex; align-items: center; gap: 8px; margin-top: 3px; font-size: 13px; color: var(--muted); }
+.status-row small b { color: var(--text); }
+.status-row .mini-meter { flex: none; width: 54px; }
+.status-row.need .status-top b { color: var(--accent2); }
+
+/* bubble icons (src/pets/props.ts → ICONS) */
+.icon-bowl .n { fill: color-mix(in srgb, var(--accent) 32%, #000); } .icon-bowl .h { fill: var(--accent2); } .icon-bowl .m { fill: var(--accent); }
+.icon-cloud .n { fill: #3d4452; } .icon-cloud .w { fill: #c9cfdb; } .icon-cloud .r { fill: #6fa8ff; }
+.icon-ball .n { fill: #7a2016; } .icon-ball .w { fill: #fff; } .icon-ball .r { fill: #ff614d; } .icon-ball .d { fill: #b8392b; }
+.icon-star .n { fill: color-mix(in srgb, var(--accent) 32%, #000); } .icon-star .y { fill: var(--accent2); }
+
+/* one flower per month (src/pets/props.ts → FLOWERS) */
+.flower-daisy     { --petal: #fbf6ea; --petal-o: #8d8470; --centre: #f6c431; }
+.flower-tulip     { --petal: #ff4d5e; --petal-o: #7a1420; --centre: #ffb0b8; }
+.flower-lavender  { --petal: #a98bff; --petal-o: #46308f; --centre: #d9ccff; }
+.flower-sunflower { --petal: #ffcb2e; --petal-o: #8a6200; --centre: #6b3d14; }
+.flower-rose      { --petal: #ff5fa2; --petal-o: #7a1d47; --centre: #ffc1db; }
+.flower-violet    { --petal: #7c5cff; --petal-o: #2f1f7a; --centre: #ffe066; }
+
 /* bark lines (inside the flipped sprite, so they point the way he faces) */
 .bark-lines { display: none; position: absolute; left: 138px; top: 50px; width: 20px; height: 30px; }
 .bark-lines i { position: absolute; left: 0; width: 10px; height: 3px; background: #16110a; }
@@ -449,9 +525,9 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 @keyframes bark-pop { from { scale: .4; opacity: 0; } }
 
 /* ---------- close-up ---------- */
-.yard, .close { position: absolute; inset: 0; transition: opacity .25s, transform .3s cubic-bezier(.2,1.3,.4,1); }
+.house, .close { position: absolute; inset: 0; transition: opacity .25s, transform .3s cubic-bezier(.2,1.3,.4,1); }
 .close { opacity: 0; transform: scale(.6); pointer-events: none; touch-action: none; }
-.scene.is-close .yard { opacity: 0; transform: scale(1.4); }
+.scene.is-close .house { opacity: 0; transform: scale(1.4); }
 .scene.is-close .close { opacity: 1; transform: none; }
 .face { position: absolute; left: 50%; bottom: 0; translate: -50% 0; overflow: visible; transform-origin: 50% 100%; }
 .close.fmod-shake .face { animation: shake-off .09s steps(2) 6; }
