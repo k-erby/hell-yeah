@@ -76,10 +76,10 @@ export function dogView(s: AppState): string {
       <div class="status-line"><span class="mood-label">${moodName(mood)}</span><span id="bo-status"></span></div>
     </div>
     <div class="device-btns">
-      <button class="dbtn" data-action="pet-ball">${t('dog.buttons.ball')}</button>
+      <button class="dbtn" data-action="pet-ball">${t('dog.buttons.toy')}</button>
       <button class="dbtn" data-action="pet-view" id="pet-mode-btn">${t('dog.buttons.pet')}</button>
       <button class="dbtn wide" data-action="pet-treat" id="pet-treat-btn">${t('dog.buttons.treat', { n: s.bo.treats })}</button>
-      <button class="dbtn" data-action="pet-woof">${t('dog.buttons.woof')}</button>
+      <button class="dbtn" data-action="pet-talk">${t('dog.buttons.talk')}</button>
     </div>
   </section>
 

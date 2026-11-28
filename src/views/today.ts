@@ -132,12 +132,12 @@ export function todayView(s: AppState, ui: UI, timeMode: string): string {
                 ${FOCUS_MINUTES.map((n, k) => `<button class="btn small ${k === 0 ? 'primary' : 'ghost'}" data-action="focus-start" data-id="${i.id}" data-min="${n}">${t('focus.minutes', { n })}</button>`).join('')}
                 <button class="icon-btn" data-action="focus-pick" data-id="${i.id}" aria-label="${ta('focus.cancel')}" title="${ta('focus.cancel')}">×</button></li>`
             : '';
-          return `<li class="check-row"><button class="check ${on ? 'on' : ''} ${pop ? 'pop' : ''} ${focusing ? 'focusing' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${on}">
+          return `<li class="check-row">${timer}<button class="check ${on ? 'on' : ''} ${pop ? 'pop' : ''} ${focusing ? 'focusing' : ''}" data-action="toggle" data-id="${i.id}" aria-pressed="${on}">
             <span class="box"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg></span>
             <span class="label">${esc(i.label)}</span>
             ${focusing ? STOPWATCH : ''}
             ${i.once ? `<span class="once-tag">${t('today.onceTag')}</span>` : ''}
-          </button>${timer}</li>${picker}`;
+          </button></li>${picker}`;
         })
         .join('')
     : `<li class="empty">${t('today.emptyList')} <button class="link" data-action="flip">${t('today.addSome')}</button></li>`;

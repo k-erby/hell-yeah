@@ -36,7 +36,6 @@ omg i just learned about a push notification thing for iOS called "Bark" - brill
 - i need to make an account system so i can like... cheer people (aka Sam) on and vice-versa
 -- account setup should let you pick your pet (german shep, golden ret, siberian cat, ragdoll, rat, fish, idk)
 - should be a "cheers"-ing people section.
-- what if there was an option to like... set up an in-app timer? so then people can encourage you on while working.
 - should there be a feed?
 -- should the feed just be pictures of megan thee stallion (haha jk. (not really, only half jk))
 - UHM, SKILL ROULETTE???? like what if you have a "bank" of random skills (user-generated, you and/or others) and you can pick certain ones to add into it. 

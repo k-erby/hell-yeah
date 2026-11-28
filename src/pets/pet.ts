@@ -275,13 +275,13 @@ export class Pet {
     this.interrupt([this.watchBall(0.35, true), this.chaseBall(true), ...this.bringBack()]);
   }
 
-  woof() {
+  talk() {
     if (this.view === 'close') {
       this.cInterrupt([this.cBark(3, true), this.cIdle(1.5)]);
       return;
     }
     if (this.wakeIfSleeping()) return;
-    this.interrupt([this.wait(0.15, 'sit', '', 'barking'), this.bark(3, true), this.wait(1.2, 'pant', 'wag', 'proudOfHimself')]);
+    this.interrupt([this.wait(0.15, 'sit', '', 'talking'), this.bark(3, true), this.wait(1.2, 'pant', 'wag', 'proud')]);
   }
 
   giveTreat() {
@@ -523,7 +523,7 @@ export class Pet {
     let t = 0;
     let done = 0;
     return {
-      label: 'barking',
+      label: 'talking',
       enter: () => this.setAnim('bark', ''),
       update: (dt) => {
         t += dt;
@@ -589,7 +589,7 @@ export class Pet {
   private watchBall(sec: number, keen: boolean): Act {
     let t = 0;
     return {
-      label: 'eyesOnTheBall',
+      label: 'eyesOnTheToy',
       enter: () => (keen ? this.setAnim('bow', 'wag-fast') : this.setAnim('sit', 'droop')),
       update: (dt) => {
         this.facing = this.ball.x >= this.x ? 1 : -1;
@@ -600,7 +600,7 @@ export class Pet {
 
   private chaseBall(fetch: boolean): Act {
     return {
-      label: fetch ? 'fetching' : 'playingBall',
+      label: fetch ? 'fetching' : 'playing',
       enter: () => this.setAnim('run', 'wag-fast'),
       update: (dt) => {
         const b = this.ball;
@@ -628,7 +628,7 @@ export class Pet {
 
   private kick(): Act {
     return {
-      label: 'playingBall',
+      label: 'playing',
       update: () => {
         this.ball.vx = this.facing * rand(140, 260);
         this.ball.vy = rand(120, 260);
@@ -651,7 +651,7 @@ export class Pet {
           return true;
         },
       },
-      this.wait(0.2, 'sit', '', 'goodBoy'),
+      this.wait(0.2, 'sit', '', 'goodPet'),
       this.bark(1, false),
       this.wait(2.2, 'bow', 'wag-fast', 'throwItAgain'),
     ];
@@ -841,7 +841,7 @@ export class Pet {
     let t = 0;
     let done = 0;
     return {
-      label: 'barking',
+      label: 'talking',
       enter: () => {
         this.eyesClosed = false;
         this.earsBack = false;

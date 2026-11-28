@@ -327,7 +327,7 @@ export const ui = {
     rankEyebrow: 'New rank',
     rankSub: '{xp} XP and climbing. Act like you expected it.',
     dogEyebrow: '{dog} leveled up',
-    dogButton: 'Good boy.',
+    dogButton: 'Good pet.',
     masteredEyebrow: 'Skill mastered',
     masteredSub: 'Another branch on the tree. That one is yours forever.',
     masteredButton: 'Next.',

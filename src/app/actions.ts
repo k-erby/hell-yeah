@@ -193,8 +193,8 @@ export function handleAction(action: string, el: HTMLElement) {
     case 'pet-treat':
       pet.giveTreat();
       break;
-    case 'pet-woof':
-      pet.woof();
+    case 'pet-talk':
+      pet.talk();
       break;
     case 'set': {
       const key = el.dataset.key as keyof AppState['settings'];
