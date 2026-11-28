@@ -97,9 +97,21 @@ export class App {
   async sharedBits() {
     return this.share.locator('.share-bit[aria-pressed="true"]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.bit));
   }
-  /** Replace the save with this (merged over the defaults on load) and reload. */
+  /**
+   * Replace the save with this (merged over the defaults on load) and reload.
+   * Written as the new page loads, not before the reload: the app saves itself on the way
+   * out (pagehide), which would put the old save straight back. Only the first load gets it,
+   * so a later reload in the same test still sees what the test did.
+   */
   async seed(state: Record<string, unknown>) {
-    await this.page.evaluate(([key, st]) => localStorage.setItem(key, JSON.stringify(st)), [STORAGE_KEY, { settings: { sound: false, haptics: false }, ...state }] as const);
+    await this.page.addInitScript(
+      ([key, st]) => {
+        if (sessionStorage.getItem('e2e:seeded')) return;
+        sessionStorage.setItem('e2e:seeded', '1');
+        localStorage.setItem(key, JSON.stringify(st));
+      },
+      [STORAGE_KEY, { settings: { sound: false, haptics: false }, ...state }] as const,
+    );
     await this.page.reload();
   }
 
