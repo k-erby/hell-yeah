@@ -24,9 +24,18 @@ export function moreView(s: AppState): string {
     <div class="card-head"><div><div class="eyebrow">${t('settings.crew.eyebrow')}</div><h2>${t('settings.crew.heading')}</h2></div></div>
     <label class="field"><span>${t('settings.crew.name')}</span><input value="${esc(s.profile.name)}" maxlength="30" data-change="profile" data-key="name"></label>
     <label class="field"><span>${t('settings.crew.dogName')}</span><input value="${esc(s.profile.dogName)}" maxlength="20" data-change="profile" data-key="dogName"></label>
-    <label class="field"><span>${t('settings.crew.buddy')}</span><input value="${esc(s.profile.buddyName)}" maxlength="30" placeholder="${ta('settings.crew.buddyPlaceholder')}" data-change="profile" data-key="buddyName"></label>
-    <button class="btn primary" data-action="share">${s.profile.buddyName ? t('settings.crew.shareTo', { buddy: s.profile.buddyName }) : t('settings.crew.share')}</button>
-    <p class="muted small">${t('settings.crew.shareHint')}</p>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><div class="eyebrow">${t('settings.share.eyebrow')}</div><h2>${t('settings.share.heading')}</h2></div></div>
+    <button class="btn primary" data-action="share-open">${t('settings.share.button')}</button>
+    <p class="muted small">${t('settings.share.hint')}</p>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><div class="eyebrow">${t('settings.setup.eyebrow')}</div><h2>${t('settings.setup.heading')}</h2></div></div>
+    <button class="btn primary" data-action="setup-open">${t('settings.setup.button')}</button>
+    <p class="muted small">${t('settings.setup.hint')}</p>
   </section>
 
   <section class="card">

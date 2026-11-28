@@ -791,3 +791,64 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
   .check.focusing .stopwatch, .focus-pet .bo { animation: none; }
   .focus-meter i { transition: none; }
 }
+
+/* ---------- setup walkthrough ---------- */
+.setup { display: flex; flex-direction: column; min-height: calc(100dvh - 40px); padding-bottom: env(safe-area-inset-bottom); }
+.setup-top { display: flex; align-items: center; gap: 12px; margin: 6px 0 24px; }
+.setup-progress { flex: 1; display: flex; gap: 4px; }
+.setup-progress i { flex: 1; height: 4px; border-radius: 4px; background: var(--line); transition: background .25s; }
+.setup-progress i.on { background: var(--accent); box-shadow: 0 0 8px var(--glow); }
+.setup-body { flex: 1; }
+.setup-body .tagline { margin-bottom: 18px; }
+.setup-body form > input { width: 100%; margin-top: 18px; font-size: 20px; }
+.setup-body form.row { margin-top: 14px; }
+.setup-pet { display: grid; place-items: center; margin: 8px 0 18px; }
+.setup-pet .bo { height: 120px; width: auto; }
+.setup-points { list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 12px; }
+.setup-points li { padding: 14px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); line-height: 1.4; }
+.setup-points b { color: var(--accent2); }
+.setup-tasks { display: flex; flex-wrap: wrap; gap: 8px; }
+.setup-task {
+  padding: 10px 14px; border-radius: 99px; border: 1px solid var(--line); background: transparent;
+  color: var(--muted); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: all .15s;
+}
+.setup-task.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.setup-nav { display: flex; gap: 8px; margin-top: 24px; position: sticky; bottom: 12px; }
+.setup-nav .btn.primary { flex: 1; }
+@media (prefers-reduced-motion: reduce) { .setup-progress i { transition: none; } }
+
+/* ---------- share screen ---------- */
+.share { padding-bottom: env(safe-area-inset-bottom); }
+.share .setup-top { justify-content: space-between; margin-bottom: 8px; }
+.share .tagline { margin-bottom: 22px; }
+.share .field-label { margin: 18px 0 8px; }
+.share-bits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.share-bit {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; padding: 8px 6px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; color: var(--muted); font: inherit; text-align: center;
+}
+.share-bit b { font-size: 13px; }
+.share-bit span { font-size: 10px; line-height: 1.2; opacity: .8; }
+.share-bit.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.share-bit:disabled { opacity: .45; cursor: default; }
+.share-learnings { display: grid; gap: 6px; }
+.share-learning {
+  text-align: left; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--muted); font: inherit; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.share-learning.on { border-color: var(--accent); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+.share-card { display: block; width: 100%; height: auto; aspect-ratio: 1080 / 1350; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.45); }
+.share-learning:disabled { opacity: .4; cursor: default; }
+.share-image {
+  display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer;
+}
+.share-image input { width: 22px; height: 22px; margin: 0; flex: none; accent-color: var(--accent); }
+.share-image span { display: grid; gap: 1px; }
+.share-image b { font-size: 15px; }
+.share-image small { font-size: 12px; color: var(--muted); }
+.share-text {
+  margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface);
+  font: 600 15px/1.5 Inter, system-ui, sans-serif; white-space: pre-wrap; word-break: break-word;
+}
+.share-card + .share-text { margin-top: 12px; }

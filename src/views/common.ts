@@ -1,5 +1,6 @@
 import { esc, t, ta } from '../lib/i18n';
 import type { AppState, Mode, Tab } from '../app/types';
+import type { PetKind } from '../pets/kinds';
 
 export interface UI {
   tab: Tab;
@@ -14,6 +15,31 @@ export interface UI {
   focusPick?: string;
   /** The timer (by start time) we've already rung for, so it only rings once. */
   focusRang?: number;
+  /** The setup walkthrough, while it's open. Nothing is saved until the last step. */
+  setup?: SetupDraft;
+  /** The Share screen, while it's open. */
+  share?: ShareDraft;
+}
+
+/** Things you can put on a share card, in the order they show. */
+export const SHARE_BITS = ['today', 'learned', 'skill', 'streak', 'rank', 'pet'] as const;
+export type ShareBit = (typeof SHARE_BITS)[number];
+
+export interface ShareDraft {
+  bits: ShareBit[];
+  /** Send the card image with the text (true), or just the text. */
+  image: boolean;
+  /** Which learnings go on the card (up to 3). */
+  learningIds?: string[];
+}
+
+/** Answers so far in the setup walkthrough. */
+export interface SetupDraft {
+  step: number;
+  name: string;
+  pet: PetKind;
+  petName: string;
+  routines: Record<Mode, string[]>;
 }
 
 export { esc } from '../lib/i18n';

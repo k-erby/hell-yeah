@@ -3,23 +3,26 @@
  * input in the views carries data-action / data-form / data-change, and
  * main.ts sends those events here.
  */
-import { dayKey, monthName, monthOf } from './dates';
+import { dayKey } from './dates';
 import { isPetKind } from '../pets/kinds';
 import { celebrate, center, toast } from '../effects/feedback';
 import { bigFx, hitFx, itemFx, sfx } from '../effects/fx';
 import { t, tx } from '../lib/i18n';
 import { ideaUrl } from '../lib/ideas';
-import { esc } from '../views/common';
+import { esc, SHARE_BITS, type ShareBit } from '../views/common';
+import { newDraft, SETUP_STEPS, setupMode } from '../views/setup';
+import { cardFor, isSharePreset, MAX_LEARNINGS, newShare, pickedLearnings, presetBits, unavailable } from '../views/share';
+import { cardFile } from '../lib/card';
 import { tipsCoveredBy, type TipId } from '../pets/needs';
 import { applyTheme, pet, render } from '../views/render';
-import { moodFor, rankFor, rankName, stageFor, stageName, stagePerk } from './progress';
+import { rankFor, rankName, stageFor, stageName, stagePerk } from './progress';
 import { fxo, save, session, ui } from './session';
 import {
-  addLearning, addSolidify, currentSkill, defaultState, deleteLearning, finishFocus, finishSkill, focusOver, MAX_LEVEL, normalize,
-  setSkillLevel, settle, SKILL_LEVELS, skillLevel, startFocus, startSkill, stopFocus, streak, toggleItem, uid,
+  addLearning, addSolidify, defaultState, deleteLearning, finishFocus, finishSkill, focusOver, MAX_LEVEL, normalize,
+  setSkillLevel, settle, SKILL_LEVELS, skillLevel, startFocus, startSkill, stopFocus, toggleItem, uid,
 } from './state';
 import type { AppState, Branch, FocusMinutes, Method, Mode, Tab } from './types';
-import { BRANCHES, FOCUS_MINUTES, METHODS } from './types';
+import { BRANCHES, FOCUS_MINUTES, METHODS, MODES } from './types';
 
 function routineCelebration(mode: Mode) {
   pet.celebrate();
@@ -214,6 +217,46 @@ export function handleAction(action: string, el: HTMLElement) {
       });
       break;
     }
+    // ---- the setup walkthrough (More → Run the setup)
+    case 'setup-open':
+      ui.setup = newDraft(s);
+      render();
+      window.scrollTo({ top: 0 });
+      break;
+    case 'setup-close':
+      ui.setup = undefined;
+      render();
+      break;
+    case 'setup-next':
+    case 'setup-back':
+      if (!ui.setup) break;
+      ui.setup.step = Math.max(0, Math.min(SETUP_STEPS - 1, ui.setup.step + (action === 'setup-next' ? 1 : -1)));
+      render();
+      window.scrollTo({ top: 0 });
+      break;
+    case 'setup-pet': {
+      const d = ui.setup;
+      const kind = el.dataset.kind;
+      if (!d || !isPetKind(kind)) break;
+      // Same as the picker on More: a default name follows the pet.
+      if (d.petName === tx(`pets.kinds.${d.pet}.name`)) d.petName = tx(`pets.kinds.${kind}.name`);
+      d.pet = kind;
+      render();
+      break;
+    }
+    case 'setup-task': {
+      const d = ui.setup;
+      const mode = d && setupMode(d.step);
+      const label = el.dataset.label;
+      if (!d || !mode || !label) break;
+      const picked = d.routines[mode];
+      d.routines[mode] = picked.includes(label) ? picked.filter((l) => l !== label) : [...picked, label];
+      render();
+      break;
+    }
+    case 'setup-finish':
+      finishSetup();
+      break;
     case 'test-fx':
       bigFx(fxo());
       break;
@@ -257,8 +300,44 @@ export function handleAction(action: string, el: HTMLElement) {
         s.routines[m] = s.routines[m].filter((x) => x.id !== id);
       });
       break;
-    case 'share':
-      void shareStatus();
+    // ---- the Share screen (More → Share something)
+    case 'share-open':
+      ui.share = newShare(s, session.day);
+      render();
+      window.scrollTo({ top: 0 });
+      break;
+    case 'share-close':
+      ui.share = undefined;
+      render();
+      break;
+    case 'share-preset': {
+      const p = el.dataset.preset;
+      if (!ui.share || !isSharePreset(p)) break;
+      ui.share.bits = presetBits(s, session.day, p);
+      render();
+      break;
+    }
+    case 'share-bit': {
+      const b = el.dataset.bit as ShareBit;
+      if (!ui.share || !SHARE_BITS.includes(b) || unavailable(s, session.day).has(b)) break;
+      const bits = ui.share.bits;
+      ui.share.bits = bits.includes(b) ? bits.filter((x) => x !== b) : [...bits, b];
+      render();
+      break;
+    }
+    case 'share-learning': {
+      const d = ui.share;
+      if (!d || !s.learnings.some((l) => l.id === id)) break;
+      const picked = pickedLearnings(s, d).map((l) => l.id);
+      if (picked.includes(id)) {
+        // Keep at least one; to share none, turn Learned off.
+        if (picked.length > 1) d.learningIds = picked.filter((x) => x !== id);
+      } else if (picked.length < MAX_LEARNINGS) d.learningIds = [...picked, id];
+      render();
+      break;
+    }
+    case 'share-send':
+      void sendCard();
       break;
     case 'export':
       exportData();
@@ -328,6 +407,26 @@ export function handleForm(form: HTMLFormElement) {
       (document.querySelector('form[data-form="add-item"] input') as HTMLInputElement | null)?.focus();
       break;
     }
+    case 'setup-text': {
+      const d = ui.setup;
+      const v = String(fd.get('value') ?? '').trim();
+      if (!d || !v) return;
+      d[form.dataset.key === 'petName' ? 'petName' : 'name'] = v;
+      d.step++;
+      render();
+      window.scrollTo({ top: 0 });
+      break;
+    }
+    case 'setup-task': {
+      const d = ui.setup;
+      const mode = d && setupMode(d.step);
+      const label = String(fd.get('label') ?? '').trim();
+      if (!d || !mode || !label) return;
+      if (!d.routines[mode].includes(label)) d.routines[mode] = [...d.routines[mode], label];
+      render();
+      document.querySelector<HTMLInputElement>('form[data-form="setup-task"] input')?.focus();
+      break;
+    }
     case 'idea': {
       const idea = String(fd.get('idea') ?? '').trim();
       if (!idea) return;
@@ -361,30 +460,83 @@ export function handleChange(el: HTMLInputElement) {
     case 'import':
       void importData(el);
       break;
+    case 'share-image':
+      if (!ui.share) return;
+      ui.share.image = el.checked;
+      render();
+      break;
   }
+}
+
+// ---------- setup ----------
+
+/** Save the walkthrough's answers. Tasks that were kept keep their history; dropped ones go. */
+function finishSetup() {
+  const d = ui.setup;
+  if (!d) return;
+  const s = session.s;
+  commit(() => {
+    s.profile.name = d.name;
+    s.profile.pet = d.pet;
+    s.profile.dogName = d.petName;
+    for (const mode of MODES) {
+      const old = s.routines[mode];
+      s.routines[mode] = d.routines[mode].map((label) => old.find((i) => i.label === label) ?? { id: uid(), label });
+    }
+    // A timer on a task that's gone has nothing to finish.
+    const f = s.focus;
+    if (f && !s.routines[f.mode].some((i) => i.id === f.itemId)) stopFocus(s);
+    ui.setup = undefined;
+    ui.tab = 'today';
+  });
+  window.scrollTo({ top: 0 });
+  bigFx(fxo());
 }
 
 // ---------- share / backup ----------
 
-async function shareStatus() {
-  const s = session.s;
-  const day = session.day;
-  const sk = currentSkill(s, day);
-  const mood = moodFor(s.bo.loyalty);
-  const text = [
-    tx('share.heading', { name: s.profile.name }),
-    tx('share.streak', { n: streak(s, day) }),
-    tx('share.rank', { rank: tx(`ranks.${rankFor(s.xp).cur.id}`), xp: s.xp }),
-    tx('share.skill', { month: monthName(monthOf(day)), skill: sk ? sk.name : tx('share.noSkill') }),
-    tx('share.dog', { dog: s.profile.dogName, mood: tx(`moods.${mood}`), loyalty: Math.round(s.bo.loyalty) }),
-  ].join('\n');
+/** Send the card: the image and the text through the phone's share sheet, or save + copy where there isn't one. */
+async function sendCard() {
+  const d = ui.share;
+  const canvas = document.querySelector<HTMLCanvasElement>('#share-card');
+  if (!d || !d.bits.length) return;
+  const { text } = cardFor(session.s, session.day, d);
   try {
-    if (navigator.share) {
-      await navigator.share({ title: tx('share.title'), text });
+    if (!d.image) {
+      // Just the words.
+      if (navigator.share) {
+        await navigator.share({ text });
+        toast(t('share.sent'));
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast(t('share.copied'));
+      }
       return;
     }
-    await navigator.clipboard.writeText(text);
-    toast(t('toasts.copied'));
+    if (!canvas) return;
+    const file = await cardFile(canvas);
+    if (file && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], text });
+      toast(t('share.sent'));
+      return;
+    }
+    if (navigator.share && !file) {
+      await navigator.share({ text });
+      toast(t('share.sent'));
+      return;
+    }
+    // No sharing files here (most desktops): save the picture and copy the words.
+    if (file) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(file);
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+    await navigator.clipboard?.writeText(text).catch(() => undefined);
+    toast(t('share.saved'));
   } catch (e) {
     if ((e as DOMException)?.name !== 'AbortError') toast(t('toasts.shareFailed'));
   }

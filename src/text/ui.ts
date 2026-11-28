@@ -240,15 +240,22 @@ export const ui = {
     title: 'Settings.',
     tagline: 'Make it yours.',
     crew: {
-      eyebrow: 'Crew',
-      heading: 'Accountability',
+      eyebrow: 'You',
+      heading: 'Names',
       name: 'Your name',
       dogName: "Pet's name",
-      buddy: 'Accountability buddy',
-      buddyPlaceholder: "Who's keeping you honest?",
-      share: 'Send my status',
-      shareTo: 'Send my status to {buddy}',
-      shareHint: 'Live buddy sync is coming. For now, this sends a status card over text or anything else on your phone.',
+    },
+    share: {
+      eyebrow: 'Share',
+      heading: 'Show off a little',
+      button: 'Share something',
+      hint: 'Make a card with your streak, what you learned, your pet. Send it over text or anywhere else.',
+    },
+    setup: {
+      eyebrow: 'Setup',
+      heading: 'Start fresh',
+      button: 'Run the setup',
+      hint: "Walks through the new-account setup. Your answers fill in from what you've got now, and nothing changes until the last step.",
     },
     pet: {
       eyebrow: 'Pet',
@@ -294,6 +301,52 @@ export const ui = {
     footer: 'Hell Yeah · v0.1',
   },
 
+  // ─────────────────────────────── The setup walkthrough (More → Run the setup)
+  setup: {
+    step: 'Step {n} of {total}',
+    next: 'Next',
+    back: 'Back',
+    close: 'Close setup',
+    welcome: {
+      eyebrow: 'Welcome',
+      title: 'Hell yeah.',
+      body: 'This is where your days get done.',
+      points: [
+        '<b>Routines.</b> Morning, afternoon, night. Tick them off.',
+        '<b>Learn.</b> Something new every day, lock it in every week, a new skill every month.',
+        '<b>A pet.</b> Show up and they grow with you. Ghost them and they notice.',
+      ],
+      go: "Let's get you set up",
+    },
+    name: {
+      eyebrow: 'You',
+      title: "What's your name?",
+      placeholder: 'Your name',
+    },
+    pet: {
+      eyebrow: 'Your pet',
+      title: 'Pick a pet.',
+      body: "They're with you the whole way. You can switch later.",
+    },
+    petName: {
+      eyebrow: 'Your pet',
+      title: 'Name them.',
+      placeholder: "Pet's name",
+    },
+    routine: {
+      eyebrow: 'Routines',
+      title: 'Your {routine}.',
+      body: 'Tap to add or remove. You can change these any time.',
+      addPlaceholder: 'Add your own',
+    },
+    done: {
+      eyebrow: 'All set',
+      title: "You're in, {name}.",
+      body: '{pet} is waiting. Go get your first tick.',
+      go: "Let's go",
+    },
+  },
+
   // ─────────────────────────────── Pop-ups, little messages, and "are you sure?" questions
   toasts: {
     xp: '+{xp} XP',
@@ -303,7 +356,6 @@ export const ui = {
     dropped: 'Dropped. Onward.',
     planted: '<b>{skill}</b> is planted. Feed it every day.',
     fresh: 'Fresh start.',
-    copied: 'Status copied. Paste it to your buddy.',
     shareFailed: "Couldn't share. Try again.",
     restored: 'Backup restored.',
     badBackup: "That file isn't a Hell Yeah backup.",
@@ -340,14 +392,54 @@ export const ui = {
     classyBoom: 'DONE.',
   },
 
-  /** The text that gets sent to your buddy. Emoji welcome. */
+  /** The status card you send from More. Emoji welcome. */
   share: {
-    title: 'Hell Yeah status',
-    heading: "{name}'s status:",
-    streak: '🔥 {n}-day streak',
-    rank: '👑 {rank} · {xp} XP',
-    skill: '🌱 {month} skill: {skill}',
-    noSkill: 'not planted yet',
-    dog: '🐕 {dog}: {mood} ({loyalty}% loyal)',
+    /** The Share screen (More → Share something). */
+    eyebrow: 'Share',
+    title: 'Show off.',
+    tagline: 'Pick what goes on the card, then send it anywhere.',
+    close: 'Close share',
+    quick: 'Quick picks',
+    parts: "What's on it",
+    which: 'Which ones? Up to {n}',
+    preview: 'Preview',
+    send: 'Share it',
+    pickOne: 'Pick at least one thing.',
+    image: 'Send the card image',
+    imageOn: 'The picture and the text.',
+    imageOff: 'Just the text.',
+    presets: {
+      routine: 'Just did my routine',
+      learned: 'Learned something',
+      flex: 'Streak flex',
+    },
+    /** The toggles, and the small heading above each line on the card. */
+    bits: {
+      today: 'Today',
+      learned: 'Learned',
+      skill: '{month} skill',
+      streak: 'Streak',
+      rank: 'Rank',
+      pet: 'My pet',
+    },
+    /** Shown on a toggle you can't use yet. */
+    needs: {
+      learned: 'Log something on Learn first',
+      skill: 'Plant a skill on Learn first',
+    },
+    routinesDone: '{routines}: done',
+    tasks: '{n} of {total} tasks done',
+    streakDays: { one: '{n} day', other: '{n} days' },
+    rank: '{rank} · {xp} XP',
+    skill: '{skill} · {level}',
+    pet: '{pet}: {mood}',
+    /** The text that goes with the image. {emoji} for the pet comes from src/text/pets.ts. */
+    textHeading: '{name} on Hell Yeah:',
+    emoji: { today: '✅', learned: '💡', skill: '🌱', streak: '🔥', rank: '👑' },
+    /** Bottom corner of the card image. */
+    footer: 'HELL YEAH.',
+    sent: 'Sent. Hell yeah.',
+    saved: 'Card saved. The text is copied too.',
+    copied: 'Copied. Paste it anywhere.',
   },
 };

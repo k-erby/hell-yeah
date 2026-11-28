@@ -5,12 +5,12 @@
 export const pets = {
   /** The pets you can pick in Settings. Picking one renames your pet, unless you've given it your own name. */
   kinds: {
-    bo: { name: 'Bo', what: 'German shepherd' },
-    hudson: { name: 'Hudson', what: 'Golden retriever' },
-    monty: { name: 'Monty', what: 'Fluffy orange cat' },
-    hubble: { name: 'Hubble', what: 'Tuxedo cat' },
-    rat: { name: 'Ziggy', what: 'Rat' },
-    pigeon: { name: 'Pearl', what: 'Pigeon' },
+    bo: { name: 'Bo', what: 'German shepherd', emoji: '🐕' },
+    hudson: { name: 'Hudson', what: 'Golden retriever', emoji: '🐕' },
+    monty: { name: 'Monty', what: 'Fluffy orange cat', emoji: '🐈' },
+    hubble: { name: 'Hubble', what: 'Tuxedo cat', emoji: '🐈‍⬛' },
+    rat: { name: 'Ziggy', what: 'Rat', emoji: '🐀' },
+    pigeon: { name: 'Pearl', what: 'Pigeon', emoji: '🐦' },
   },
   /** Shown when the pet needs something. Only one at a time; "Not now" hides it until tomorrow. */
   needs: {

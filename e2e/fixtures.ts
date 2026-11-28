@@ -59,6 +59,50 @@ export class App {
     await expect(this.focusBar).toBeVisible();
   }
 
+  // ---- Setup walkthrough (More → Run the setup)
+  get setup() { return this.page.locator('section.setup'); }
+  get nav() { return this.page.locator('#nav'); }
+  /** Which step it's on, 1-based. */
+  get setupStep() { return this.setup.getByRole('progressbar'); }
+  /** Next / "Let's get you set up" / "Let's go": the big button at the bottom. */
+  get setupNext() { return this.setup.locator('.setup-nav .btn.primary'); }
+  get setupBack() { return this.setup.getByRole('button', { name: tx('setup.back'), exact: true }); }
+  get setupClose() { return this.setup.getByRole('button', { name: tx('setup.close') }); }
+  get setupInput() { return this.setup.locator('input[name="value"]'); }
+  setupTask(label: string) { return this.setup.locator('.setup-task', { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }); }
+  async openSetup() {
+    await this.tab('more');
+    await this.page.getByRole('button', { name: tx('settings.setup.button') }).click();
+    await expect(this.setup).toBeVisible();
+  }
+  /** Tap the big button and check it landed on the next step. */
+  async setupGo(toStep: number) {
+    await this.setupNext.click();
+    await expect(this.setupStep).toHaveAttribute('aria-valuenow', String(toStep));
+  }
+  /** Labels of the tasks showing on Today. */
+  taskLabels() { return this.tasks.locator('.label').allInnerTexts(); }
+
+  // ---- Share screen (More → Share something)
+  get share() { return this.page.locator('section.share'); }
+  shareBit(bit: string) { return this.share.locator(`.share-bit[data-bit="${bit}"]`); }
+  sharePreset(p: string) { return this.share.locator(`[data-action="share-preset"][data-preset="${p}"]`); }
+  get shareSend() { return this.share.getByRole('button', { name: tx('share.send') }); }
+  async openShare() {
+    await this.tab('more');
+    await this.page.getByRole('button', { name: tx('settings.share.button') }).click();
+    await expect(this.share).toBeVisible();
+  }
+  /** Which bits are switched on, in screen order. */
+  async sharedBits() {
+    return this.share.locator('.share-bit[aria-pressed="true"]').evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.bit));
+  }
+  /** Replace the save with this (merged over the defaults on load) and reload. */
+  async seed(state: Record<string, unknown>) {
+    await this.page.evaluate(([key, st]) => localStorage.setItem(key, JSON.stringify(st)), [STORAGE_KEY, { settings: { sound: false, haptics: false }, ...state }] as const);
+    await this.page.reload();
+  }
+
   // ---- Learn tab
   get skillCard() { return this.page.locator('section.skill-card'); }
   get dailyForm() { return this.page.locator('form[data-form="learning"]'); }

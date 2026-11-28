@@ -11,6 +11,9 @@ import { learnView } from './learn';
 import { moreView } from './more';
 import { todayView } from './today';
 import { treeView } from './tree';
+import { setupView } from './setup';
+import { cardFor, shareView } from './share';
+import { drawCard } from '../lib/card';
 
 const view = document.getElementById('view')!;
 const nav = document.getElementById('nav')!;
@@ -81,6 +84,30 @@ function renderNav() {
 /** Redraw the current tab and the nav bar. */
 export function render() {
   const s = session.s;
+  // The setup walkthrough takes over the whole screen, nav and all.
+  nav.hidden = !!(ui.setup || ui.share);
+  if (ui.share) {
+    // Keep the old preview canvas so it doesn't flash blank while the new card draws.
+    const old = view.querySelector<HTMLCanvasElement>('#share-card');
+    view.innerHTML = shareView(s, session.day, ui.share);
+    const canvas = view.querySelector<HTMLCanvasElement>('#share-card');
+    // Text-only shares have no card to draw.
+    if (canvas) {
+      if (old) {
+        old.setAttribute('aria-label', canvas.getAttribute('aria-label') ?? '');
+        canvas.replaceWith(old);
+      }
+      void drawCard(old ?? canvas, cardFor(s, session.day, ui.share));
+    }
+    pet.unmount();
+    return;
+  }
+  if (ui.setup) {
+    view.innerHTML = setupView(ui.setup);
+    pet.unmount();
+    view.querySelector<HTMLInputElement>('.setup input[name="value"]')?.focus();
+    return;
+  }
   switch (ui.tab) {
     case 'today': view.innerHTML = todayView(s, ui, session.timeMode); break;
     case 'learn': view.innerHTML = learnView(s); break;
