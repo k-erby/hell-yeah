@@ -59,11 +59,26 @@ export interface Settings {
   theme: 'auto' | Mode;
 }
 
+/** Timer lengths you can pick, in minutes. */
+export const FOCUS_MINUTES = [5, 15, 25] as const;
+export type FocusMinutes = (typeof FOCUS_MINUTES)[number];
+
+/** A focus timer on one task. Stored as times, so closing the app doesn't lose it. */
+export interface Focus {
+  mode: Mode;
+  itemId: string;
+  minutes: FocusMinutes;
+  startedAt: number;
+  endsAt: number;
+}
+
 export interface AppState {
   version: 1;
   /** dogName is the pet's name, whatever the pet is (kept as dogName so old saves still load). */
   profile: { name: string; dogName: string; buddyName: string; createdAt: string; pet: PetKind };
   routines: Record<Mode, RoutineItem[]>;
+  /** The running focus timer, or the finished one waiting for "Done?". */
+  focus?: Focus;
   /** day -> mode -> checked item ids */
   days: Record<string, Partial<Record<Mode, string[]>>>;
   learnings: Learning[];

@@ -751,3 +751,43 @@ input:focus, textarea:focus { outline: none; border-color: var(--accent); box-sh
 .pet-choice b { font-size: 13px; }
 .pet-choice span { font-size: 11px; opacity: .6; text-align: center; line-height: 1.2; }
 .pet-choice.on { border-color: var(--accent); background: var(--surface2); box-shadow: 0 0 0 1px var(--accent) inset; }
+
+/* ---------- focus timer ---------- */
+.check-row { display: flex; gap: 8px; align-items: stretch; }
+.check-row .check { flex: 1; min-width: 0; }
+.stopwatch { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.focus-btn {
+  flex: none; width: 48px; display: grid; place-items: center; border-radius: 14px;
+  background: rgba(0,0,0,.25); border: 1px solid var(--line); color: var(--muted); transition: color .2s, border-color .2s;
+}
+.focus-btn.on, .focus-btn:hover { color: var(--accent); border-color: var(--accent); }
+.check.focusing { border-color: var(--accent); box-shadow: 0 0 14px var(--glow); }
+.check.focusing .stopwatch { color: var(--accent); flex: none; animation: tick-pulse 1s steps(2) infinite; }
+@keyframes tick-pulse { 50% { opacity: .45; } }
+.focus-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 2px 4px 6px; animation: note-in .25s ease-out; }
+.focus-pick .btn { min-height: 36px; padding: 6px 14px; }
+.focus-pick .icon-btn { margin-left: auto; }
+
+.focus-bar {
+  margin: -2px 0 14px; padding: 12px 14px; border-radius: 16px; background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 18px var(--glow);
+  animation: note-in .35s cubic-bezier(.2,1.3,.4,1);
+}
+.focus-top { display: flex; align-items: center; gap: 10px; }
+.focus-top .eyebrow { flex: 1; }
+.focus-time { font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: .02em; color: var(--accent2); }
+.focus-task { margin: 2px 0 10px; font-weight: 700; overflow-wrap: anywhere; }
+.focus-meter { height: 6px; border-radius: 6px; background: var(--surface2); overflow: hidden; }
+.focus-meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 1s linear; }
+.focus-line { display: flex; align-items: center; gap: 10px; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+.focus-pet { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 14px 14px 14px 4px; background: var(--surface2); border: 1px solid var(--line); }
+.focus-pet .bo { width: 30px; height: auto; animation: breathe 1.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.focus-bar.over { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; font-size: 14px; }
+.focus-bar.over p { flex: 1; min-width: 150px; margin: 0; color: var(--muted); }
+.focus-bar.over p b { color: var(--text); }
+.focus-actions { display: flex; gap: 8px; }
+.focus-actions .btn { min-height: 36px; padding: 6px 14px; }
+@media (prefers-reduced-motion: reduce) {
+  .check.focusing .stopwatch, .focus-pet .bo { animation: none; }
+  .focus-meter i { transition: none; }
+}

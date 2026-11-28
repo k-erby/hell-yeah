@@ -3,6 +3,7 @@ import { addDays, today, weekOf, weekDays } from './dates';
 import {
   addLearning, addSolidify, bestStreak, defaultState, finishSkill, isRoutineDone,
   feedTreat, fedToday, LOY, MAX_LEVEL, normalize, setSkillLevel, TREATS, settle, skillStats, startSkill, streak, toggleItem, XP,
+  checkedFor, FOCUS_BONUS, finishFocus, startFocus, stopFocus,
 } from './state';
 
 const D = '2026-11-25'; // a Wednesday
@@ -186,5 +187,67 @@ describe('skill levels', () => {
     expect(skillStats(s, sk).solid).toBe(0);
     addSolidify(s, 'tied', 'taught', undefined, D, sk.id);
     expect(skillStats(s, sk).solid).toBe(1);
+  });
+});
+
+describe('focus timer', () => {
+  const day = '2026-03-02';
+  const setup = () => {
+    const s = defaultState(new Date('2026-03-02T09:00:00'));
+    const item = s.routines.morning[0];
+    return { s, item };
+  };
+
+  it('only runs one timer at a time', () => {
+    const { s, item } = setup();
+    expect(startFocus(s, 'morning', item.id, 5, 0)).toBe(true);
+    expect(startFocus(s, 'morning', s.routines.morning[1].id, 15, 1000)).toBe(false);
+    expect(s.focus?.itemId).toBe(item.id);
+    expect(s.focus?.endsAt).toBe(5 * 60_000);
+  });
+
+  it("can't be finished before time is up", () => {
+    const { s, item } = setup();
+    startFocus(s, 'morning', item.id, 5, 0);
+    expect(finishFocus(s, day, 60_000)).toBeNull();
+    expect(s.focus).toBeDefined();
+  });
+
+  it('Done checks the task off and gives bond, not loyalty', () => {
+    const { s, item } = setup();
+    const bond = s.bo.bond, loyalty = s.bo.loyalty, treats = s.bo.treats;
+    startFocus(s, 'morning', item.id, 25, 0);
+    const r = finishFocus(s, day, 25 * 60_000);
+    expect(r?.checked).toBe(true);
+    expect(checkedFor(s, day, 'morning').has(item.id)).toBe(true);
+    expect(s.focus).toBeUndefined();
+    // The check-off itself earns its usual loyalty; the timer adds bond + a treat on top.
+    expect(s.bo.bond).toBe(bond + LOY.item + FOCUS_BONUS[25].bond);
+    expect(s.bo.loyalty).toBe(loyalty + LOY.item);
+    expect(s.bo.treats).toBe(treats + FOCUS_BONUS[25].treats);
+  });
+
+  it("doesn't uncheck a task that was already checked", () => {
+    const { s, item } = setup();
+    toggleItem(s, 'morning', item.id, day);
+    startFocus(s, 'morning', item.id, 5, 0);
+    finishFocus(s, day, 5 * 60_000);
+    expect(checkedFor(s, day, 'morning').has(item.id)).toBe(true);
+  });
+
+  it('stopping gives nothing', () => {
+    const { s, item } = setup();
+    const bond = s.bo.bond;
+    startFocus(s, 'morning', item.id, 15, 0);
+    stopFocus(s);
+    expect(s.focus).toBeUndefined();
+    expect(s.bo.bond).toBe(bond);
+  });
+
+  it('survives a save, and junk is dropped', () => {
+    const { s, item } = setup();
+    startFocus(s, 'morning', item.id, 15, 0);
+    expect(normalize(JSON.parse(JSON.stringify(s))).focus).toEqual(s.focus);
+    expect(normalize({ ...s, focus: { mode: 'nope', itemId: 1 } }).focus).toBeUndefined();
   });
 });

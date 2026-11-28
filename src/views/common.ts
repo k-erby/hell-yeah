@@ -10,6 +10,10 @@ export interface UI {
   selectedSkill?: string;
   /** Today's routine card is flipped to its edit side. */
   flipped: boolean;
+  /** Task whose focus-timer length picker is open. */
+  focusPick?: string;
+  /** The timer (by start time) we've already rung for, so it only rings once. */
+  focusRang?: number;
 }
 
 export { esc } from '../lib/i18n';

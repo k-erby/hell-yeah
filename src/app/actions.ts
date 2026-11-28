@@ -15,11 +15,24 @@ import { applyTheme, pet, render } from '../views/render';
 import { moodFor, rankFor, rankName, stageFor, stageName, stagePerk } from './progress';
 import { fxo, save, session, ui } from './session';
 import {
-  addLearning, addSolidify, currentSkill, defaultState, deleteLearning, finishSkill, MAX_LEVEL, normalize, setSkillLevel, settle,
-  SKILL_LEVELS, skillLevel, startSkill, streak, toggleItem, uid,
+  addLearning, addSolidify, currentSkill, defaultState, deleteLearning, finishFocus, finishSkill, focusOver, MAX_LEVEL, normalize,
+  setSkillLevel, settle, SKILL_LEVELS, skillLevel, startFocus, startSkill, stopFocus, streak, toggleItem, uid,
 } from './state';
-import type { AppState, Branch, Method, Mode, Tab } from './types';
-import { BRANCHES, METHODS } from './types';
+import type { AppState, Branch, FocusMinutes, Method, Mode, Tab } from './types';
+import { BRANCHES, FOCUS_MINUTES, METHODS } from './types';
+
+function routineCelebration(mode: Mode) {
+  pet.celebrate();
+  setTimeout(() => {
+    bigFx(fxo());
+    toast(t('toasts.routineDone', { routine: tx(`modes.${mode}.title`), dog: session.s.profile.dogName }));
+  }, 350);
+}
+
+function focusReward(s: AppState, r: NonNullable<ReturnType<typeof finishFocus>>): string {
+  const vars = { bond: r.bonus.bond, pet: s.profile.dogName };
+  return r.bonus.treats ? t('focus.rewardTreat', vars) : t('focus.reward', vars);
+}
 
 /** Run a mutation, then save/render and celebrate any level-ups it caused. */
 function commit(fn: () => void) {
@@ -64,21 +77,55 @@ export function handleAction(action: string, el: HTMLElement) {
     case 'toggle': {
       const [x, y] = center(el.querySelector('.box'));
       let result = { checked: false, routineDone: false };
+      const f = s.focus;
+      const timed = !!f && f.mode === ui.mode && f.itemId === id;
+      let bonus: ReturnType<typeof finishFocus> = null;
       const gained = commit(() => {
         result = toggleItem(s, ui.mode, id, session.day);
         if (result.checked) ui.justChecked = id;
+        // Checking off the timed task: after the timer it counts as "Done"; before, the timer just stops.
+        if (result.checked && timed) {
+          if (f && focusOver(f)) bonus = finishFocus(s, session.day);
+          else stopFocus(s);
+        }
       });
       if (result.checked) {
         itemFx(x, y, fxo());
-        if (gained > 0) toast(t('toasts.xp', { xp: gained }));
+        if (bonus) toast(focusReward(s, bonus));
+        else if (timed) toast(t('focus.early'));
+        else if (gained > 0) toast(t('toasts.xp', { xp: gained }));
       } else if (s.settings.sound) sfx('tick', 0.4);
-      if (result.routineDone) {
-        pet.celebrate();
-        setTimeout(() => {
-          bigFx(fxo());
-          toast(t('toasts.routineDone', { routine: tx(`modes.${ui.mode}.title`), dog: s.profile.dogName }));
-        }, 350);
-      }
+      if (result.routineDone) routineCelebration(ui.mode);
+      break;
+    }
+    case 'focus-pick':
+      ui.focusPick = ui.focusPick === id ? undefined : id;
+      render();
+      break;
+    case 'focus-start': {
+      const minutes = Number(el.dataset.min) as FocusMinutes;
+      if (!FOCUS_MINUTES.includes(minutes)) return;
+      ui.focusPick = undefined;
+      commit(() => startFocus(s, ui.mode, id, minutes));
+      if (s.settings.sound) sfx('tick', 0.6);
+      break;
+    }
+    case 'focus-stop':
+      commit(() => stopFocus(s));
+      break;
+    case 'focus-done': {
+      const [x, y] = center(el);
+      const itemId = s.focus?.itemId;
+      let r: ReturnType<typeof finishFocus> = null;
+      commit(() => {
+        r = finishFocus(s, session.day);
+        if (r?.checked && r.mode === ui.mode) ui.justChecked = itemId;
+      });
+      const done = r as ReturnType<typeof finishFocus>;
+      if (!done) break;
+      itemFx(x, y, fxo());
+      toast(focusReward(s, done));
+      if (done.routineDone) routineCelebration(done.mode);
       break;
     }
     case 'skill-level': {

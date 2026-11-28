@@ -42,6 +42,23 @@ export class App {
     await scope.locator('label.chip-radio', { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).click();
   }
 
+  // ---- Today: checklist + focus timer
+  get tasks() { return this.page.locator('.checks li.check-row'); }
+  task(i: number) { return this.tasks.nth(i); }
+  /** The tick box for a task (aria-pressed says whether it's checked). */
+  checkbox(i: number) { return this.task(i).locator('button.check'); }
+  /** The stopwatch button next to a task. */
+  timerButton(i: number) { return this.task(i).locator('.focus-btn'); }
+  get timerButtons() { return this.page.locator('.checks .focus-btn'); }
+  get lengthPicker() { return this.page.locator('.checks li.focus-pick'); }
+  get focusBar() { return this.page.locator('#focus-bar'); }
+  /** Open a task's stopwatch and pick a length. */
+  async startTimer(i: number, minutes: 5 | 15 | 25) {
+    await this.timerButton(i).click();
+    await this.lengthPicker.getByRole('button', { name: tx('focus.minutes', { n: minutes }), exact: true }).click();
+    await expect(this.focusBar).toBeVisible();
+  }
+
   // ---- Learn tab
   get skillCard() { return this.page.locator('section.skill-card'); }
   get dailyForm() { return this.page.locator('form[data-form="learning"]'); }

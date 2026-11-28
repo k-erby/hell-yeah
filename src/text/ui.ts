@@ -74,6 +74,31 @@ export const ui = {
   },
 
   // ─────────────────────────────── Today
+  /** The focus timer on Today. {pet} is the pet's name, {task} the task, {n} minutes. */
+  focus: {
+    start: 'Start a focus timer on {task}',
+    pick: 'Focus for',
+    minutes: '{n} min',
+    cancel: 'Cancel',
+    eyebrow: 'Focus · {n} min',
+    stop: 'Stop the timer',
+    someTask: 'your task',
+    /** The pet's line under the timer, by how far along you are. */
+    lines: {
+      start: "{pet}'s watching. You've got this.",
+      half: "Halfway there. {pet}'s still with you.",
+      last: 'Last minute. Bring it home.',
+    },
+    over: '<b>Time!</b> Did you finish {task}?',
+    done: 'Done',
+    notYet: 'Not yet',
+    /** Toasts. */
+    rang: "Time's up on {task}. Check in on Today.",
+    reward: 'Focus done: +{bond} bond.',
+    rewardTreat: 'Focus done: +{bond} bond and a treat for {pet}.',
+    early: 'Done early. Nice.',
+  },
+
   today: {
     greeting: '{greet},<br>{name}.',
     xp: '{xp} XP',

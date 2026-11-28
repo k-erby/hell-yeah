@@ -11,10 +11,13 @@ import './styles.css';
 import { handleAction, handleChange, handleForm } from './app/actions';
 import { modeAt, today } from './app/dates';
 import { load, save, saveNow, session, ui } from './app/session';
-import { LOY, normalize, settle } from './app/state';
+import { focusOver, LOY, normalize, settle } from './app/state';
 import { toast } from './effects/feedback';
 import { tn } from './lib/i18n';
 import { applyTheme, render } from './views/render';
+import { updateFocusBar } from './views/today';
+import { sfx } from './effects/fx';
+import { t } from './lib/i18n';
 
 const app = document.getElementById('app')!;
 
@@ -66,6 +69,27 @@ function tick() {
   if (changed) render();
 }
 
+// ---------- the focus timer ----------
+
+/** Every second while a timer runs: move the clock, and ring once when it's up. */
+function focusTick() {
+  const s = session.s;
+  const f = s.focus;
+  if (!f) return;
+  if (!focusOver(f)) return updateFocusBar(s);
+  if (ui.focusRang === f.startedAt) return;
+  ui.focusRang = f.startedAt;
+  if (s.settings.sound) sfx('chime', 0.7);
+  if (s.settings.haptics && 'vibrate' in navigator) {
+    try { navigator.vibrate([200, 100, 200]); } catch { /* not supported */ }
+  }
+  if (ui.tab === 'today') render();
+  else {
+    const task = s.routines[f.mode].find((i) => i.id === f.itemId)?.label ?? t('focus.someTask');
+    toast(t('focus.rang', { task }));
+  }
+}
+
 // ---------- start ----------
 
 async function boot() {
@@ -76,7 +100,10 @@ async function boot() {
   applyTheme();
   render();
   if (missed > 0) setTimeout(() => toast(missedToast(missed)), 600);
+  // A timer that ran out while the app was closed just waits for "Done?", no ringing.
+  if (session.s.focus && focusOver(session.s.focus)) ui.focusRang = session.s.focus.startedAt;
   setInterval(tick, 60_000);
+  setInterval(focusTick, 1000);
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && tick());
 }
 

@@ -1,7 +1,7 @@
 import { t, ta, type TextKey } from '../lib/i18n';
 import type { AppState } from '../app/types';
 import { esc } from './common';
-import { boSvg, SITTING } from '../pets/dog/sprite';
+import { petSvg, SITTING } from '../pets/dog/sprite';
 import { PET_KINDS } from '../pets/kinds';
 
 function seg(key: string, value: string, options: [string, TextKey][]) {
@@ -34,7 +34,7 @@ export function moreView(s: AppState): string {
     <div class="pet-pick">${PET_KINDS.map((k) => {
       const on = s.profile.pet === k;
       return `<button class="pet-choice ${on ? 'on' : ''}" data-action="pet-kind" data-kind="${k}" aria-pressed="${on}">
-        ${boSvg(1, 'locked-in', '', SITTING, k)}<b>${t(`pets.kinds.${k}.name`)}</b><span>${t(`pets.kinds.${k}.what`)}</span></button>`;
+        ${petSvg(1, 'locked-in', '', SITTING, k)}<b>${t(`pets.kinds.${k}.name`)}</b><span>${t(`pets.kinds.${k}.what`)}</span></button>`;
     }).join('')}</div>
     <p class="muted small">${t('settings.pet.hint')}</p>
   </section>

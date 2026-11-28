@@ -1,7 +1,7 @@
 import { addDays, daysInMonth, monthOf, today, weekOf } from './dates';
 import { isPetKind } from '../pets/kinds';
-import type { AppState, Branch, Learning, Method, Mode, RoutineItem, Skill } from './types';
-import { MODES } from './types';
+import type { AppState, Branch, Focus, FocusMinutes, Learning, Method, Mode, RoutineItem, Skill } from './types';
+import { FOCUS_MINUTES, MODES } from './types';
 import { list, tx } from '../lib/i18n';
 
 export const XP = { item: 5, routine: 25, learning: 20, solidify: 75, skillStart: 10, level: 50, mastered: 300 };
@@ -12,6 +12,12 @@ export const TREATS = { routine: 1, learning: 1, solidify: 2, mastered: 3 };
  * Roughly two weeks of showing up gets a new pet from wary to ride-or-die.
  * How he behaves at each level: src/app/progress.ts (MOODS) and src/pets/pet.ts (TRUST).
  */
+/** What finishing a focus timer gives: bond (never loyalty, so timers can't be farmed for trust) and treats. */
+export const FOCUS_BONUS: Record<FocusMinutes, { bond: number; treats: number }> = {
+  5: { bond: 1, treats: 0 },
+  15: { bond: 2, treats: 0 },
+  25: { bond: 3, treats: 1 },
+};
 export const LOY = { start: 30, item: 1, routine: 2, learning: 2, solidify: 4, mastered: 6, meal: 1, dailyCap: 5, decay: 10 };
 
 export const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
@@ -68,8 +74,13 @@ export function normalize(raw: unknown): AppState {
     awarded: r.awarded ?? {},
     bo: { ...d.bo, ...r.bo },
     settings: { ...d.settings, ...r.settings },
+    focus: isFocus(r.focus) ? r.focus : undefined,
   };
 }
+
+const isFocus = (f: unknown): f is Focus =>
+  !!f && typeof f === 'object' && MODES.includes((f as Focus).mode) && typeof (f as Focus).itemId === 'string' &&
+  FOCUS_MINUTES.includes((f as Focus).minutes) && Number.isFinite((f as Focus).startedAt) && Number.isFinite((f as Focus).endsAt);
 
 // ---------- rewards ----------
 
@@ -125,6 +136,43 @@ export function toggleItem(s: AppState, mode: Mode, itemId: string, day = today(
   const routineDone = isRoutineDone(s, mode, day);
   if (routineDone && award(s, `routine:${day}:${mode}`, XP.routine, LOY.routine, day)) s.bo.treats += TREATS.routine;
   return { checked: true, routineDone };
+}
+
+// ---------- focus timer ----------
+
+/** Start a timer on a task. Does nothing if one is already running. */
+export function startFocus(s: AppState, mode: Mode, itemId: string, minutes: FocusMinutes, now = Date.now()): boolean {
+  if (s.focus && now < s.focus.endsAt) return false;
+  s.focus = { mode, itemId, minutes, startedAt: now, endsAt: now + minutes * 60_000 };
+  s.bo.lastActiveAt = now;
+  return true;
+}
+
+export const focusOver = (f: Focus, now = Date.now()) => now >= f.endsAt;
+
+/** Stop the timer without a reward ("Not yet", ×, or checking the task off early). */
+export function stopFocus(s: AppState) {
+  delete s.focus;
+}
+
+/**
+ * "Done": the timer ran its full length and they finished the task.
+ * Checks the task off (if it isn't already) and gives the focus bonus once.
+ */
+export function finishFocus(s: AppState, day = today(), now = Date.now()) {
+  const f = s.focus;
+  if (!f || !focusOver(f, now)) return null;
+  delete s.focus;
+  let result = { checked: false, routineDone: false };
+  const item = s.routines[f.mode].find((i) => i.id === f.itemId);
+  if (item && !checkedFor(s, day, f.mode).has(item.id)) result = toggleItem(s, f.mode, item.id, day);
+  const bonus = FOCUS_BONUS[f.minutes];
+  const fresh = award(s, `focus:${f.startedAt}`, 0, 0, day);
+  if (fresh) {
+    s.bo.bond += bonus.bond;
+    s.bo.treats += bonus.treats;
+  }
+  return { ...result, mode: f.mode, bonus: fresh ? bonus : { bond: 0, treats: 0 } };
 }
 
 // ---------- learning ----------

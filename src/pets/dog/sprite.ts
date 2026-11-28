@@ -264,7 +264,7 @@ export const SITTING: Spec = { fam: 'sit', head: 'up', tail: 'flat' };
 export const SLEEPING: Spec = { fam: 'lie', head: 'rest', tail: 'flat' };
 
 /** Standalone SVG cropped to the pet (thumbnails on Today, the pet picker). */
-export function boSvg(stage: number, mood: Mood, cls = '', spec: Spec = SITTING, kind: PetKind = 'bo'): string {
+export function petSvg(stage: number, mood: Mood, cls = '', spec: Spec = SITTING, kind: PetKind = 'bo'): string {
   const b = build(spec, stage, mood, kind);
   const [x, y, w, h] = bbox(b);
   return `<svg class="bo ${cls}" viewBox="${x} ${y} ${w} ${h}" shape-rendering="crispEdges" aria-hidden="true">${frameInner(b)}</svg>`;
